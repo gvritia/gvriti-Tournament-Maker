@@ -88,6 +88,14 @@ Copy-Item .env.example .env
 uvicorn app.main:app --reload
 ```
 
+Alternative dependency installation for an already active virtual environment:
+
+```powershell
+cd backend
+python -m pip install -r requirements-dev.txt
+uvicorn app.main:app --reload
+```
+
 Run tests and formatters:
 
 ```powershell

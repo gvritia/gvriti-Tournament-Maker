@@ -21,6 +21,10 @@ From the repository root:
 docker compose up -d db
 ```
 
+The PostgreSQL container is exposed on host port `55432` to avoid conflicts with
+locally installed PostgreSQL services. The container still uses port `5432`
+internally.
+
 From the backend directory:
 
 ```powershell
@@ -32,6 +36,18 @@ python -m pip install -e ".[dev]"
 Copy-Item .env.example .env
 uvicorn app.main:app --reload
 ```
+
+If you use an already existing virtual environment, install dependencies into
+that active environment first:
+
+```powershell
+cd backend
+python -m pip install -r requirements-dev.txt
+uvicorn app.main:app --reload
+```
+
+The app requires `pydantic-settings`, `SQLAlchemy`, `psycopg`, `python-jose`,
+and the other packages listed in `requirements.txt`.
 
 Healthcheck:
 
