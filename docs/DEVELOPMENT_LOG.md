@@ -65,3 +65,23 @@
   `backend/app/schemas/match.py`, `backend/app/utils/datetime_utils.py`,
   and `backend/tests/test_matches.py`.
 - Next steps: implement lineup management and match protocol submission.
+
+### Match Lineup Management
+
+- Added authenticated lineup endpoints for listing and adding players through
+  `/matches/{match_id}/lineups`, and reading, updating, deleting lineup entries
+  through `/lineups/{lineup_id}`.
+- Implemented `LineupService` with validation for match existence, participant
+  teams, player-team membership, duplicate players, duplicate team numbers, and
+  basic red-card/five-yellow-card suspension checks.
+- Added lineup repository helpers and event lookup helpers used by suspension
+  validation.
+- Added lineup tests for CRUD, invalid teams, wrong-team players, duplicate
+  players, duplicate numbers, suspended players, and JWT requirements.
+- Changed files: `backend/app/api/v1/endpoints/lineups.py`,
+  `backend/app/api/v1/router.py`, `backend/app/services/lineup_service.py`,
+  `backend/app/repositories/match_lineup.py`,
+  `backend/app/repositories/match_event.py`, `backend/app/repositories/match.py`,
+  `backend/app/schemas/match_lineup.py`, and `backend/tests/test_lineups.py`.
+- Next steps: implement match protocol submission so events can be entered
+  through the API instead of direct persistence helpers.

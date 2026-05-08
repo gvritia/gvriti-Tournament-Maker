@@ -30,6 +30,9 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - `TicketPriceService` calculates the default match ticket price once at match
   creation. The current formula uses a base price of `20.00`, stadium capacity
   factors, and the highest club coefficient among the two teams.
+- `LineupService` owns match lineup editing and validates match participation,
+  player-team membership, duplicate players, duplicate lineup numbers, and basic
+  red-card/five-yellow-card suspension rules.
 
 ## Implemented Domain Services
 
@@ -39,11 +42,13 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   per Monday-through-Sunday week.
 - `TicketPriceService`: default ticket pricing.
 - `ValidationService`: referee availability checks.
+- `LineupService`: match lineup listing, creation, update, deletion, and
+  suspension validation.
 
 ## Planned Domain Services
 
 - `ScheduleService`: double round-robin generation.
-- `LineupService`: lineup editing, suspension checks, and replacement selection.
+- `LineupService`: automatic replacement selection for suspended players.
 - `MatchProtocolService`: match events and protocol submission.
 - `RandomResultService`: bounded random match result and event generation.
 - `StandingsService`: team table recalculation.

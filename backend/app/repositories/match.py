@@ -42,3 +42,22 @@ class MatchRepository(BaseRepository[Match]):
         if exclude_match_id is not None:
             statement = statement.where(Match.id != exclude_match_id)
         return self.db.scalar(statement)
+
+    def get_next_team_match_after(
+        self,
+        *,
+        team_id: int,
+        season_id: int,
+        after_match_datetime: datetime,
+    ) -> Match | None:
+        statement = (
+            select(Match)
+            .where(
+                or_(Match.home_team_id == team_id, Match.away_team_id == team_id),
+                Match.season_id == season_id,
+                Match.match_datetime > after_match_datetime,
+            )
+            .order_by(Match.match_datetime, Match.id)
+            .limit(1)
+        )
+        return self.db.scalar(statement)

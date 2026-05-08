@@ -57,6 +57,9 @@ checks must include both championship and cup matches.
   seats.
 - Ticket price can be changed manually for a specific match.
 - Players with five accumulated yellow cards or a red card miss the next match.
+- Match lineups can include only players from one of the match participant
+  teams, and a player cannot be added to the same match lineup twice.
+- A team lineup for one match cannot contain duplicate shirt numbers.
 - Automatic lineup generation must replace unavailable players with eligible
   teammates where possible.
 - Random match result generation must use realistic limits so scores and cards
@@ -104,9 +107,10 @@ checks must include both championship and cup matches.
 The current backend includes FastAPI setup, settings, database connection,
 SQLAlchemy models, Pydantic schemas, Alembic configuration, PostgreSQL Docker
 Compose setup, JWT auth, initial schema migration, CRUD for seasons, teams,
-players, stadiums, referees, tournaments, and matches, plus match calendar
-validation, referee assignment validation, and ticket price calculation/manual
-override.
+players, stadiums, referees, tournaments, matches, and match lineups, plus match
+calendar validation, referee assignment validation, ticket price
+calculation/manual override, and suspension checks when adding players to
+lineups.
 
 ## API Conventions
 
