@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.core.constants import TournamentType
+from app.core.constants import CupStage, TournamentType
 from app.models.match import Match
 from app.models.tournament import Tournament
 from app.repositories.base import BaseRepository
@@ -77,6 +77,19 @@ class MatchRepository(BaseRepository[Match]):
             select(Match)
             .where(Match.stadium_id == stadium_id)
             .order_by(Match.match_datetime, Match.id)
+        )
+        return list(self.db.scalars(statement).all())
+
+    def list_by_tournament_and_stage(
+        self,
+        *,
+        tournament_id: int,
+        stage: CupStage,
+    ) -> list[Match]:
+        statement = (
+            select(Match)
+            .where(Match.tournament_id == tournament_id, Match.stage == stage)
+            .order_by(Match.round_number, Match.match_datetime, Match.id)
         )
         return list(self.db.scalars(statement).all())
 

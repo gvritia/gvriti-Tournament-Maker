@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
     auth,
+    cups,
     lineups,
     matches,
     players,
@@ -31,6 +32,7 @@ api_router.include_router(
 api_router.include_router(matches.router, prefix="/matches", tags=["matches"])
 api_router.include_router(lineups.router, tags=["lineups"])
 api_router.include_router(protocol.router, tags=["match-protocol"])
+api_router.include_router(cups.router, prefix="/cups", tags=["cups"])
 api_router.include_router(schedule.router, prefix="/schedule", tags=["schedule"])
 api_router.include_router(standings.router, prefix="/standings", tags=["standings"])
 api_router.include_router(statistics.router, prefix="/statistics", tags=["statistics"])

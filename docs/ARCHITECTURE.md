@@ -23,6 +23,10 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - Alembic is the only supported way to change the database schema.
 - `MatchService` owns match creation, updates, deletion, rescheduling, referee
   assignment, and manual ticket price changes.
+- `CupService` owns cup semifinal generation, final generation, and bracket
+  reads. Cup matches are regular `Match` rows marked with `CupStage`.
+- Cup final generation is derived from finished semifinal winners and rejects
+  unfinished or drawn semifinals.
 - `ScheduleService` validates team match limits across all tournaments using
   Monday-through-Sunday weeks, generates championship double round-robin
   schedules, and exposes season/stadium schedule reads.
@@ -51,6 +55,8 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 
 - `MatchService`: match CRUD, rescheduling, referee assignment, and manual
   ticket price updates.
+- `CupService`: four-team semifinal generation, final generation from semifinal
+  winners, and bracket reads.
 - `ScheduleService`: calendar validation for one match per day and two matches
   per Monday-through-Sunday week, double round-robin championship generation,
   and season/stadium schedule reads.

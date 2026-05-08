@@ -84,6 +84,13 @@ checks must include both championship and cup matches.
 - The cup consists of semifinals and a final.
 - The cup uses the first four teams from the previous season. If there is no
   previous season, the organizer selects teams manually.
+- Cup semifinal generation accepts exactly four unique teams, creates seeded
+  pairings `1 vs 4` and `2 vs 3`, and assigns stadiums through home stadiums,
+  explicit team mapping, or a fallback stadium.
+- Cup final generation requires two finished semifinals with clear winners.
+  Drawn semifinals must be resolved before the final can be created.
+- Cup bracket view returns semifinal matches, final match when created, match
+  winners, and champion after the final is finished.
 - Players are stored through `Player.team_id`, not as arrays inside a team.
 - Match participants are stored as `home_team_id` and `away_team_id`.
 - Match lineups and match protocol events are stored in separate tables.
@@ -132,7 +139,9 @@ score validation against recorded goals. Standings endpoints can recalculate and
 return the championship table for a season. Player statistics endpoints can
 recalculate season totals and return leaderboards for goals, assists, saves,
 yellow cards, and red cards. Schedule endpoints can generate double round-robin
-championship matches and return season or stadium match schedules.
+championship matches and return season or stadium match schedules. Cup endpoints
+can generate semifinals for four selected teams, generate the final from
+finished semifinal winners, and return a bracket view.
 
 ## API Conventions
 

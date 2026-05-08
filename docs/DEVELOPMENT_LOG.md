@@ -162,3 +162,24 @@
   `backend/app/repositories/match.py`, `backend/app/repositories/stadium.py`,
   `backend/app/schemas/schedule.py`, and `backend/tests/test_schedule.py`.
 - Next steps: implement cup creation/bracket flow or random result generation.
+
+### Cup Bracket Flow
+
+- Added authenticated cup endpoints for generating semifinals through
+  `/cups/{tournament_id}/semifinals`, generating the final through
+  `/cups/{tournament_id}/final`, and reading bracket state through
+  `/cups/{tournament_id}/bracket`.
+- Implemented `CupService` to validate cup tournaments, accept four unique
+  selected teams, create seeded semifinal pairings, derive final participants
+  from finished semifinal winners, reject drawn semifinals, and report bracket
+  winners/champion.
+- Reused existing match calendar constraints and ticket price calculation for
+  generated cup matches.
+- Added cup tests for the full semifinal/final/bracket flow, missing resources,
+  wrong tournament type, duplicate teams, existing calendar conflicts,
+  unfinished/drawn semifinals, and JWT requirements.
+- Changed files: `backend/app/api/v1/endpoints/cups.py`,
+  `backend/app/api/v1/router.py`, `backend/app/services/cup_service.py`,
+  `backend/app/repositories/match.py`, `backend/app/schemas/cup.py`, and
+  `backend/tests/test_cups.py`.
+- Next steps: implement random result generation or automatic lineup generation.
