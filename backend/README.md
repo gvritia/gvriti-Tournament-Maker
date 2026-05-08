@@ -1,0 +1,81 @@
+# Tournament Maker Backend
+
+Backend for a study project that manages a national football championship and a
+cup tournament. This iteration contains only the backend architecture skeleton:
+FastAPI app, SQLAlchemy models, Pydantic schemas, Alembic config, PostgreSQL
+Docker Compose config, and a healthcheck endpoint.
+
+Frontend is intentionally not created in this iteration.
+
+## Requirements
+
+- Python 3.11+
+- Docker and Docker Compose
+- PostgreSQL, started through `docker-compose.yml`
+
+## First Run
+
+From the repository root:
+
+```powershell
+docker compose up -d db
+```
+
+From the backend directory:
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+Copy-Item .env.example .env
+uvicorn app.main:app --reload
+```
+
+Healthcheck:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/health
+```
+
+Expected response:
+
+```json
+{"status": "ok", "service": "Tournament Maker Backend"}
+```
+
+## Alembic
+
+The Alembic environment is configured, but the first migration is not generated
+yet. After model changes are ready to persist:
+
+```powershell
+cd backend
+alembic revision --autogenerate -m "initial schema"
+alembic upgrade head
+```
+
+## Tests and Formatting
+
+```powershell
+cd backend
+pytest
+ruff check .
+black .
+```
+
+## Project Layout
+
+```text
+app/core          settings, security, constants, exceptions
+app/db            SQLAlchemy base and session
+app/models        SQLAlchemy ORM models
+app/schemas       Pydantic v2 API schemas
+app/api           FastAPI routers and dependencies
+app/repositories  database access layer
+app/services      business logic layer
+app/utils         shared helpers
+alembic           migration environment
+tests             pytest tests
+```
