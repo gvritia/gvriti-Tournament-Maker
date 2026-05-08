@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.constants import MatchEventType
+from app.core.constants import MatchEventType, MatchStatus
 from app.models.match import Match
 from app.models.match_event import MatchEvent
 from app.repositories.base import BaseRepository
@@ -49,3 +49,15 @@ class MatchEventRepository(BaseRepository[MatchEvent]):
             MatchEvent.event_type == MatchEventType.GOAL,
         )
         return len(self.db.scalars(statement).all())
+
+    def list_finished_events_by_season(self, season_id: int) -> list[MatchEvent]:
+        statement = (
+            select(MatchEvent)
+            .join(Match, Match.id == MatchEvent.match_id)
+            .where(
+                Match.season_id == season_id,
+                Match.status == MatchStatus.FINISHED,
+            )
+            .order_by(Match.match_datetime, MatchEvent.minute, MatchEvent.id)
+        )
+        return list(self.db.scalars(statement).all())

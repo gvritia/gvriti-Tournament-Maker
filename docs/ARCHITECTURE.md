@@ -39,6 +39,8 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - `StandingsService` recalculates `TeamSeasonStats` from finished championship
   matches and orders places by points, goal difference, goals scored, then
   `team_id`.
+- `StatisticsService` recalculates `PlayerSeasonStats` from protocol events in
+  finished matches and exposes leaderboards by supported stat metrics.
 
 ## Implemented Domain Services
 
@@ -54,13 +56,13 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   finishing matches.
 - `StandingsService`: championship table recalculation and season standings
   reads.
+- `StatisticsService`: player season statistics recalculation and leaderboards.
 
 ## Planned Domain Services
 
 - `ScheduleService`: double round-robin generation.
 - `LineupService`: automatic replacement selection for suspended players.
 - `RandomResultService`: bounded random match result and event generation.
-- `StatisticsService`: player statistics and leaderboards.
 
 ## Agreed Business Rules For Upcoming Work
 

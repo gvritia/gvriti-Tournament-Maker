@@ -68,6 +68,9 @@ checks must include both championship and cup matches.
   Cup matches do not affect league standings.
 - Standings order uses points, goal difference, goals scored, and then `team_id`
   as a stable final tie-breaker.
+- Player season statistics are recalculated from events in finished matches.
+- Assist totals include explicit `assist` events and `assist_player_id` recorded
+  on goal events.
 - Automatic lineup generation must replace unavailable players with eligible
   teammates where possible.
 - Random match result generation must use realistic limits so scores and cards
@@ -120,7 +123,9 @@ calendar validation, referee assignment validation, ticket price
 calculation/manual override, and suspension checks when adding players to
 lineups. Match protocol endpoints can record events and finish matches with
 score validation against recorded goals. Standings endpoints can recalculate and
-return the championship table for a season.
+return the championship table for a season. Player statistics endpoints can
+recalculate season totals and return leaderboards for goals, assists, saves,
+yellow cards, and red cards.
 
 ## API Conventions
 

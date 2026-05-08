@@ -125,3 +125,23 @@
   `backend/tests/test_standings.py`.
 - Next steps: implement player season statistics and leaderboards from match
   protocol events.
+
+### Player Statistics And Leaderboards
+
+- Added authenticated player statistics endpoints for reading season totals
+  through `/statistics/seasons/{season_id}/players`, recalculating them through
+  `/statistics/seasons/{season_id}/players/recalculate`, and reading
+  leaderboards through `/statistics/seasons/{season_id}/leaders/{metric}`.
+- Implemented `StatisticsService` to rebuild `PlayerSeasonStats` from events in
+  finished matches.
+- Added leaderboard support for goals, assists, saves, yellow cards, and red
+  cards.
+- Added statistics tests for recalculation, ignoring unfinished matches,
+  idempotency, leaderboards, unsupported metrics, missing seasons, and JWT
+  requirements.
+- Changed files: `backend/app/api/v1/endpoints/statistics.py`,
+  `backend/app/services/statistics_service.py`,
+  `backend/app/repositories/stats.py`, `backend/app/repositories/match_event.py`,
+  and `backend/tests/test_statistics.py`.
+- Next steps: implement automatic championship schedule generation and schedule
+  views.
