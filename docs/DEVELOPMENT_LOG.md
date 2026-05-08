@@ -46,3 +46,22 @@
 - Added architecture notes for current layers and planned domain services.
 - Next steps: implement match creation with basic validations, ticket price
   calculation, and referee assignment.
+
+### Match CRUD And Scheduling Rules
+
+- Added authenticated CRUD endpoints for matches, plus action endpoints for
+  referee assignment, rescheduling, and manual ticket price changes.
+- Implemented `MatchService`, calendar validation, referee parallel-match
+  validation, and default ticket price calculation.
+- Added match tests for successful creation, missing related entities, calendar
+  conflicts, referee conflicts, manual ticket price override, rescheduling, and
+  JWT requirements.
+- Changed files: `backend/app/api/v1/endpoints/matches.py`,
+  `backend/app/services/match_service.py`,
+  `backend/app/services/schedule_service.py`,
+  `backend/app/services/ticket_price_service.py`,
+  `backend/app/services/validation_service.py`,
+  `backend/app/repositories/match.py`, `backend/app/repositories/team.py`,
+  `backend/app/schemas/match.py`, `backend/app/utils/datetime_utils.py`,
+  and `backend/tests/test_matches.py`.
+- Next steps: implement lineup management and match protocol submission.

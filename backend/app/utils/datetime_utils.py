@@ -1,8 +1,8 @@
-from datetime import UTC, datetime, time, timedelta
+from datetime import datetime, time, timedelta
 
 
 def start_of_day(value: datetime) -> datetime:
-    return datetime.combine(value.date(), time.min, tzinfo=value.tzinfo or UTC)
+    return datetime.combine(value.date(), time.min, tzinfo=value.tzinfo)
 
 
 def start_of_week(value: datetime) -> datetime:

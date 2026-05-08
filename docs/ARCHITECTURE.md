@@ -21,12 +21,28 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   - `BusinessRuleError` -> `400`
 - PostgreSQL is exposed on host port `55432` to avoid local PostgreSQL conflicts.
 - Alembic is the only supported way to change the database schema.
+- `MatchService` owns match creation, updates, deletion, rescheduling, referee
+  assignment, and manual ticket price changes.
+- `ScheduleService` validates team match limits across all tournaments using
+  Monday-through-Sunday weeks.
+- `ValidationService` checks referee availability for parallel matches at the
+  same scheduled datetime.
+- `TicketPriceService` calculates the default match ticket price once at match
+  creation. The current formula uses a base price of `20.00`, stadium capacity
+  factors, and the highest club coefficient among the two teams.
+
+## Implemented Domain Services
+
+- `MatchService`: match CRUD, rescheduling, referee assignment, and manual
+  ticket price updates.
+- `ScheduleService`: calendar validation for one match per day and two matches
+  per Monday-through-Sunday week.
+- `TicketPriceService`: default ticket pricing.
+- `ValidationService`: referee availability checks.
 
 ## Planned Domain Services
 
-- `MatchService`: create, update, cancel, finish, and postpone matches.
-- `ScheduleService`: double round-robin generation and calendar validation.
-- `TicketPriceService`: default ticket pricing and manual override.
+- `ScheduleService`: double round-robin generation.
 - `LineupService`: lineup editing, suspension checks, and replacement selection.
 - `MatchProtocolService`: match events and protocol submission.
 - `RandomResultService`: bounded random match result and event generation.

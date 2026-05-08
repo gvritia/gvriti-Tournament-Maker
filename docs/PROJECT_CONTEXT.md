@@ -50,6 +50,11 @@ checks must include both championship and cup matches.
 - `club_coefficient` is based on the participating clubs' table tier from the
   previous season: top third is `2.0`, middle third is `1.5`, bottom third is
   `1.1`.
+- For a match, the default club coefficient uses the highest coefficient among
+  the home and away teams.
+- The current capacity factor tiers are `0.00` for stadiums below 10,000 seats,
+  `5.00` from 10,000 seats, `10.00` from 30,000 seats, and `15.00` from 60,000
+  seats.
 - Ticket price can be changed manually for a specific match.
 - Players with five accumulated yellow cards or a red card miss the next match.
 - Automatic lineup generation must replace unavailable players with eligible
@@ -98,8 +103,10 @@ checks must include both championship and cup matches.
 
 The current backend includes FastAPI setup, settings, database connection,
 SQLAlchemy models, Pydantic schemas, Alembic configuration, PostgreSQL Docker
-Compose setup, JWT auth, initial schema migration, and CRUD for seasons, teams,
-players, stadiums, referees, and tournaments.
+Compose setup, JWT auth, initial schema migration, CRUD for seasons, teams,
+players, stadiums, referees, tournaments, and matches, plus match calendar
+validation, referee assignment validation, and ticket price calculation/manual
+override.
 
 ## API Conventions
 

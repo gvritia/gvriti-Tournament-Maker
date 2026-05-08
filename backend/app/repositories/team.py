@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.team import Team
@@ -11,3 +11,6 @@ class TeamRepository(BaseRepository[Team]):
 
     def get_by_name(self, name: str) -> Team | None:
         return self.db.scalar(select(Team).where(Team.name == name))
+
+    def get_previous_season_table_size(self) -> int | None:
+        return self.db.scalar(select(func.max(Team.previous_season_place)))
