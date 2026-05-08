@@ -24,7 +24,12 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - `MatchService` owns match creation, updates, deletion, rescheduling, referee
   assignment, and manual ticket price changes.
 - `ScheduleService` validates team match limits across all tournaments using
-  Monday-through-Sunday weeks.
+  Monday-through-Sunday weeks, generates championship double round-robin
+  schedules, and exposes season/stadium schedule reads.
+- Championship schedule generation creates all matches in one transaction and
+  rolls back the batch if any generated match violates calendar limits.
+- Championship schedule generation resolves stadiums by home team first, then
+  by explicit team mapping, then by fallback stadium.
 - `ValidationService` checks referee availability for parallel matches at the
   same scheduled datetime.
 - `TicketPriceService` calculates the default match ticket price once at match
@@ -47,7 +52,8 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - `MatchService`: match CRUD, rescheduling, referee assignment, and manual
   ticket price updates.
 - `ScheduleService`: calendar validation for one match per day and two matches
-  per Monday-through-Sunday week.
+  per Monday-through-Sunday week, double round-robin championship generation,
+  and season/stadium schedule reads.
 - `TicketPriceService`: default ticket pricing.
 - `ValidationService`: referee availability checks.
 - `LineupService`: match lineup listing, creation, update, deletion, and
@@ -60,13 +66,11 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 
 ## Planned Domain Services
 
-- `ScheduleService`: double round-robin generation.
 - `LineupService`: automatic replacement selection for suspended players.
 - `RandomResultService`: bounded random match result and event generation.
 
 ## Agreed Business Rules For Upcoming Work
 
-- Championship schedule is double round-robin: home and away.
 - Weekly calendar limits use Monday through Sunday.
 - Ticket price is calculated once for a match and remains fixed unless manually
   changed.

@@ -42,6 +42,12 @@ checks must include both championship and cup matches.
 - A team cannot play more than two matches per week.
 - A week is counted from Monday through Sunday.
 - Calendar limits include both championship and cup matches.
+- Championship schedule generation creates a double round-robin set of matches:
+  every selected team plays every other selected team twice, one home match and
+  one away match.
+- Championship schedule generation uses a team's home stadium when available;
+  otherwise the organizer must provide a team stadium mapping or fallback
+  stadium.
 - A referee cannot officiate parallel matches.
 - Ticket price is calculated when a match is created and stays fixed unless the
   organizer changes it manually.
@@ -125,7 +131,8 @@ lineups. Match protocol endpoints can record events and finish matches with
 score validation against recorded goals. Standings endpoints can recalculate and
 return the championship table for a season. Player statistics endpoints can
 recalculate season totals and return leaderboards for goals, assists, saves,
-yellow cards, and red cards.
+yellow cards, and red cards. Schedule endpoints can generate double round-robin
+championship matches and return season or stadium match schedules.
 
 ## API Conventions
 

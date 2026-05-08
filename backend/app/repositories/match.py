@@ -64,6 +64,22 @@ class MatchRepository(BaseRepository[Match]):
         )
         return self.db.scalar(statement)
 
+    def list_by_season(self, season_id: int) -> list[Match]:
+        statement = (
+            select(Match)
+            .where(Match.season_id == season_id)
+            .order_by(Match.match_datetime, Match.id)
+        )
+        return list(self.db.scalars(statement).all())
+
+    def list_by_stadium(self, stadium_id: int) -> list[Match]:
+        statement = (
+            select(Match)
+            .where(Match.stadium_id == stadium_id)
+            .order_by(Match.match_datetime, Match.id)
+        )
+        return list(self.db.scalars(statement).all())
+
     def list_championship_matches_by_season(self, season_id: int) -> list[Match]:
         statement = (
             select(Match)

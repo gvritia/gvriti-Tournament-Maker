@@ -145,3 +145,20 @@
   and `backend/tests/test_statistics.py`.
 - Next steps: implement automatic championship schedule generation and schedule
   views.
+
+### Championship Schedule Generation
+
+- Added authenticated schedule endpoints for generating championship double
+  round-robin fixtures through `/schedule/championships/{tournament_id}/generate`
+  and reading season/stadium match schedules.
+- Extended `ScheduleService` to create all generated matches in one transaction,
+  validate existing team calendar limits, assign home stadiums or configured
+  fallback stadiums, and calculate default ticket prices.
+- Added schedule tests for four-team double round-robin generation, home/away
+  pair accounting, non-championship rejection, missing resources, existing
+  calendar conflicts, schedule views, and JWT requirements.
+- Changed files: `backend/app/api/v1/endpoints/schedule.py`,
+  `backend/app/services/schedule_service.py`,
+  `backend/app/repositories/match.py`, `backend/app/repositories/stadium.py`,
+  `backend/app/schemas/schedule.py`, and `backend/tests/test_schedule.py`.
+- Next steps: implement cup creation/bracket flow or random result generation.
