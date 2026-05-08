@@ -24,3 +24,11 @@ LOGIN_ERROR_RESPONSES = {
     HTTP_UNAUTHORIZED: {"description": "Invalid email or password"},
     HTTP_UNPROCESSABLE_ENTITY: {"description": "Invalid request payload"},
 }
+
+CRUD_ERROR_RESPONSES = {
+    HTTP_UNAUTHORIZED: {"description": "Missing or invalid bearer token"},
+    HTTP_NOT_FOUND: {"description": "Resource not found"},
+    HTTP_CONFLICT: {"description": "Resource conflict"},
+    HTTP_BAD_REQUEST: {"description": "Business rule violation"},
+    HTTP_UNPROCESSABLE_ENTITY: {"description": "Invalid request payload"},
+}

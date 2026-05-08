@@ -1,14 +1,14 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TeamBase(BaseModel):
-    name: str
-    city: str
-    address: str | None = None
-    manager_name: str | None = None
-    previous_season_place: int | None = None
+    name: str = Field(min_length=1, max_length=160)
+    city: str = Field(min_length=1, max_length=120)
+    address: str | None = Field(default=None, max_length=255)
+    manager_name: str | None = Field(default=None, max_length=160)
+    previous_season_place: int | None = Field(default=None, ge=1)
 
 
 class TeamCreate(TeamBase):
@@ -16,11 +16,11 @@ class TeamCreate(TeamBase):
 
 
 class TeamUpdate(BaseModel):
-    name: str | None = None
-    city: str | None = None
-    address: str | None = None
-    manager_name: str | None = None
-    previous_season_place: int | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    city: str | None = Field(default=None, min_length=1, max_length=120)
+    address: str | None = Field(default=None, max_length=255)
+    manager_name: str | None = Field(default=None, max_length=160)
+    previous_season_place: int | None = Field(default=None, ge=1)
 
 
 class TeamRead(TeamBase):

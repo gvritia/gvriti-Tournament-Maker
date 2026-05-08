@@ -1,13 +1,13 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class StadiumBase(BaseModel):
-    name: str
-    city: str
-    address: str
-    capacity: int
+    name: str = Field(min_length=1, max_length=160)
+    city: str = Field(min_length=1, max_length=120)
+    address: str = Field(min_length=1, max_length=255)
+    capacity: int = Field(gt=0)
     home_team_id: int | None = None
 
 
@@ -16,10 +16,10 @@ class StadiumCreate(StadiumBase):
 
 
 class StadiumUpdate(BaseModel):
-    name: str | None = None
-    city: str | None = None
-    address: str | None = None
-    capacity: int | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    city: str | None = Field(default=None, min_length=1, max_length=120)
+    address: str | None = Field(default=None, min_length=1, max_length=255)
+    capacity: int | None = Field(default=None, gt=0)
     home_team_id: int | None = None
 
 
