@@ -33,6 +33,9 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - `LineupService` owns match lineup editing and validates match participation,
   player-team membership, duplicate players, duplicate lineup numbers, and basic
   red-card/five-yellow-card suspension rules.
+- `MatchProtocolService` owns match event recording and match finishing. It
+  validates participant teams, player-team membership, optional assist players,
+  mutable match status, and final score consistency with goal events.
 
 ## Implemented Domain Services
 
@@ -44,12 +47,13 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - `ValidationService`: referee availability checks.
 - `LineupService`: match lineup listing, creation, update, deletion, and
   suspension validation.
+- `MatchProtocolService`: event listing, creation, update, deletion, and
+  finishing matches.
 
 ## Planned Domain Services
 
 - `ScheduleService`: double round-robin generation.
 - `LineupService`: automatic replacement selection for suspended players.
-- `MatchProtocolService`: match events and protocol submission.
 - `RandomResultService`: bounded random match result and event generation.
 - `StandingsService`: team table recalculation.
 - `StatisticsService`: player statistics and leaderboards.

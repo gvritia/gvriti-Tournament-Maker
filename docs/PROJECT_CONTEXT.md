@@ -60,6 +60,10 @@ checks must include both championship and cup matches.
 - Match lineups can include only players from one of the match participant
   teams, and a player cannot be added to the same match lineup twice.
 - A team lineup for one match cannot contain duplicate shirt numbers.
+- Match protocol events can be recorded only for match participant teams and
+  their players.
+- A match can be finished only when the submitted final score matches recorded
+  goal events.
 - Automatic lineup generation must replace unavailable players with eligible
   teammates where possible.
 - Random match result generation must use realistic limits so scores and cards
@@ -110,7 +114,8 @@ Compose setup, JWT auth, initial schema migration, CRUD for seasons, teams,
 players, stadiums, referees, tournaments, matches, and match lineups, plus match
 calendar validation, referee assignment validation, ticket price
 calculation/manual override, and suspension checks when adding players to
-lineups.
+lineups. Match protocol endpoints can record events and finish matches with
+score validation against recorded goals.
 
 ## API Conventions
 

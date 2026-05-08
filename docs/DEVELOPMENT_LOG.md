@@ -85,3 +85,25 @@
   `backend/app/schemas/match_lineup.py`, and `backend/tests/test_lineups.py`.
 - Next steps: implement match protocol submission so events can be entered
   through the API instead of direct persistence helpers.
+
+### Match Protocol Submission
+
+- Added authenticated protocol endpoints for listing and adding match events
+  through `/matches/{match_id}/events`, reading, updating, deleting events
+  through `/events/{event_id}`, and finishing matches through
+  `/matches/{match_id}/finish`.
+- Implemented `MatchProtocolService` with validation for participant teams,
+  player-team membership, optional assist players, immutable finished/cancelled
+  protocols, and final score consistency with recorded goal events.
+- Extended match event schemas and repository helpers for event ordering and
+  goal counting.
+- Added protocol tests for successful goal/card entry, event correction and
+  deletion, invalid teams, wrong-team players, wrong-team assists, successful
+  finish, score mismatch, finished-match mutation, and JWT requirements.
+- Changed files: `backend/app/api/v1/endpoints/protocol.py`,
+  `backend/app/api/v1/router.py`,
+  `backend/app/services/match_protocol_service.py`,
+  `backend/app/repositories/match_event.py`,
+  `backend/app/schemas/match_event.py`, and
+  `backend/tests/test_match_protocol.py`.
+- Next steps: implement standings recalculation from finished matches.
