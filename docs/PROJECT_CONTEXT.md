@@ -64,6 +64,10 @@ checks must include both championship and cup matches.
   their players.
 - A match can be finished only when the submitted final score matches recorded
   goal events.
+- Championship standings are recalculated from finished championship matches.
+  Cup matches do not affect league standings.
+- Standings order uses points, goal difference, goals scored, and then `team_id`
+  as a stable final tie-breaker.
 - Automatic lineup generation must replace unavailable players with eligible
   teammates where possible.
 - Random match result generation must use realistic limits so scores and cards
@@ -115,7 +119,8 @@ players, stadiums, referees, tournaments, matches, and match lineups, plus match
 calendar validation, referee assignment validation, ticket price
 calculation/manual override, and suspension checks when adding players to
 lineups. Match protocol endpoints can record events and finish matches with
-score validation against recorded goals.
+score validation against recorded goals. Standings endpoints can recalculate and
+return the championship table for a season.
 
 ## API Conventions
 

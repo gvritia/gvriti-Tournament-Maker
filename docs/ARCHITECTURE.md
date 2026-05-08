@@ -36,6 +36,9 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - `MatchProtocolService` owns match event recording and match finishing. It
   validates participant teams, player-team membership, optional assist players,
   mutable match status, and final score consistency with goal events.
+- `StandingsService` recalculates `TeamSeasonStats` from finished championship
+  matches and orders places by points, goal difference, goals scored, then
+  `team_id`.
 
 ## Implemented Domain Services
 
@@ -49,13 +52,14 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   suspension validation.
 - `MatchProtocolService`: event listing, creation, update, deletion, and
   finishing matches.
+- `StandingsService`: championship table recalculation and season standings
+  reads.
 
 ## Planned Domain Services
 
 - `ScheduleService`: double round-robin generation.
 - `LineupService`: automatic replacement selection for suspended players.
 - `RandomResultService`: bounded random match result and event generation.
-- `StandingsService`: team table recalculation.
 - `StatisticsService`: player statistics and leaderboards.
 
 ## Agreed Business Rules For Upcoming Work

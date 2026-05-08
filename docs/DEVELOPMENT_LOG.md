@@ -107,3 +107,21 @@
   `backend/app/schemas/match_event.py`, and
   `backend/tests/test_match_protocol.py`.
 - Next steps: implement standings recalculation from finished matches.
+
+### Standings Recalculation
+
+- Added authenticated standings endpoints for reading a season table through
+  `/standings/seasons/{season_id}` and recalculating it through
+  `/standings/seasons/{season_id}/recalculate`.
+- Implemented `StandingsService` to rebuild `TeamSeasonStats` from finished
+  championship matches, excluding cup matches from league standings.
+- Added ranking by points, goal difference, goals scored, and stable `team_id`
+  tie-breaker.
+- Added standings tests for recalculation, cup exclusion, idempotency, missing
+  seasons, and JWT requirements.
+- Changed files: `backend/app/api/v1/endpoints/standings.py`,
+  `backend/app/services/standings_service.py`,
+  `backend/app/repositories/stats.py`, `backend/app/repositories/match.py`, and
+  `backend/tests/test_standings.py`.
+- Next steps: implement player season statistics and leaderboards from match
+  protocol events.

@@ -3,7 +3,9 @@ from datetime import datetime
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.core.constants import TournamentType
 from app.models.match import Match
+from app.models.tournament import Tournament
 from app.repositories.base import BaseRepository
 
 
@@ -61,3 +63,15 @@ class MatchRepository(BaseRepository[Match]):
             .limit(1)
         )
         return self.db.scalar(statement)
+
+    def list_championship_matches_by_season(self, season_id: int) -> list[Match]:
+        statement = (
+            select(Match)
+            .join(Tournament, Tournament.id == Match.tournament_id)
+            .where(
+                Match.season_id == season_id,
+                Tournament.type == TournamentType.CHAMPIONSHIP,
+            )
+            .order_by(Match.match_datetime, Match.id)
+        )
+        return list(self.db.scalars(statement).all())
