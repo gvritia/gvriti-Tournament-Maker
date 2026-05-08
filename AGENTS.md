@@ -54,6 +54,23 @@ Current work should stay inside the backend, docs, and repository configuration.
   - a referee cannot be assigned to parallel matches.
 - When architecture decisions change, update `docs/PROJECT_CONTEXT.md`.
 
+## API Status Codes
+
+- `GET` endpoints return `200 OK`.
+- `POST` creation endpoints return `201 Created`.
+- `POST` action endpoints, such as login, return `200 OK` when they do not
+  create a resource.
+- `PATCH` and `PUT` endpoints return `200 OK`.
+- `DELETE` endpoints return `204 No Content`.
+- Invalid request payloads return `422 Unprocessable Entity`.
+- Missing or invalid JWT credentials return `401 Unauthorized` with
+  `WWW-Authenticate: Bearer`.
+- Authenticated users without access return `403 Forbidden`.
+- Missing resources return `404 Not Found`.
+- Unique conflicts and domain scheduling conflicts return `409 Conflict`.
+- Malformed business requests that are not resource conflicts return
+  `400 Bad Request`.
+
 ## Commands
 
 Start PostgreSQL from the repository root:

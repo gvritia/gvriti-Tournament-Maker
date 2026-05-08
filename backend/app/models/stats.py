@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.player import Player
+    from app.models.season import Season
+    from app.models.team import Team
 
 
 class TeamSeasonStats(Base):
@@ -26,8 +33,8 @@ class TeamSeasonStats(Base):
     place: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cup_place: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    team: Mapped["Team"] = relationship(back_populates="season_stats")
-    season: Mapped["Season"] = relationship(back_populates="team_stats")
+    team: Mapped[Team] = relationship(back_populates="season_stats")
+    season: Mapped[Season] = relationship(back_populates="team_stats")
 
 
 class PlayerSeasonStats(Base):
@@ -45,5 +52,5 @@ class PlayerSeasonStats(Base):
     yellow_cards: Mapped[int] = mapped_column(Integer, default=0)
     red_cards: Mapped[int] = mapped_column(Integer, default=0)
 
-    player: Mapped["Player"] = relationship(back_populates="season_stats")
-    season: Mapped["Season"] = relationship(back_populates="player_stats")
+    player: Mapped[Player] = relationship(back_populates="season_stats")
+    season: Mapped[Season] = relationship(back_populates="player_stats")

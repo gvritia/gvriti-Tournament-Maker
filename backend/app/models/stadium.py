@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.match import Match
+    from app.models.team import Team
 
 
 class Stadium(Base):
@@ -26,5 +31,5 @@ class Stadium(Base):
         server_default=func.now(),
     )
 
-    home_team: Mapped["Team | None"] = relationship(back_populates="home_stadiums")
-    matches: Mapped[list["Match"]] = relationship(back_populates="stadium")
+    home_team: Mapped[Team | None] = relationship(back_populates="home_stadiums")
+    matches: Mapped[list[Match]] = relationship(back_populates="stadium")

@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +28,16 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def validate_secret_key(self) -> "Settings":
+        non_production_environments = {"local", "test", "development"}
+        if (
+            self.environment.lower() not in non_production_environments
+            and self.secret_key == "change-me-in-production"
+        ):
+            raise ValueError("SECRET_KEY must be changed outside local environments.")
+        return self
 
 
 @lru_cache

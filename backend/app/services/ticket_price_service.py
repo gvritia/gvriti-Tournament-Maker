@@ -13,4 +13,6 @@ class TicketPriceService:
         away_team: Team,
     ) -> Decimal:
         """Calculate default ticket price from stadium capacity and team places."""
-        raise NotImplementedError("Ticket pricing will be implemented after CRUD setup.")
+        raise NotImplementedError(
+            "Ticket pricing will be implemented after CRUD setup."
+        )

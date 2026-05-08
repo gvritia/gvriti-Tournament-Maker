@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.match import Match
+    from app.models.player import Player
+    from app.models.team import Team
 
 
 class MatchLineup(Base):
@@ -20,6 +27,6 @@ class MatchLineup(Base):
     position: Mapped[str] = mapped_column(String(80))
     number: Mapped[int] = mapped_column(Integer)
 
-    match: Mapped["Match"] = relationship(back_populates="lineups")
-    team: Mapped["Team"] = relationship(back_populates="lineups")
-    player: Mapped["Player"] = relationship(back_populates="lineups")
+    match: Mapped[Match] = relationship(back_populates="lineups")
+    team: Mapped[Team] = relationship(back_populates="lineups")
+    player: Mapped[Player] = relationship(back_populates="lineups")

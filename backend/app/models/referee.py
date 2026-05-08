@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.match import Match
 
 
 class Referee(Base):
@@ -18,4 +22,4 @@ class Referee(Base):
         server_default=func.now(),
     )
 
-    matches: Mapped[list["Match"]] = relationship(back_populates="referee")
+    matches: Mapped[list[Match]] = relationship(back_populates="referee")

@@ -87,3 +87,16 @@ The current iteration creates only the backend architecture skeleton. It include
 FastAPI setup, settings, database connection, SQLAlchemy models, Pydantic
 schemas, Alembic configuration, repository and service placeholders, Docker
 Compose for PostgreSQL, healthcheck test, and project documentation.
+
+## API Conventions
+
+- Successful reads: `200 OK`.
+- Successful resource creation: `201 Created`.
+- Successful login/action without new resource: `200 OK`.
+- Successful deletion: `204 No Content`.
+- Validation errors: `422 Unprocessable Entity`.
+- Missing or invalid JWT: `401 Unauthorized`.
+- Authenticated but forbidden action: `403 Forbidden`.
+- Missing entity: `404 Not Found`.
+- Duplicate entity or violated calendar/resource conflict: `409 Conflict`.
+- Other malformed business request: `400 Bad Request`.

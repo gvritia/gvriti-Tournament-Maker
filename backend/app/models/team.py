@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.match import Match
+    from app.models.match_event import MatchEvent
+    from app.models.match_lineup import MatchLineup
+    from app.models.player import Player
+    from app.models.stadium import Stadium
+    from app.models.stats import TeamSeasonStats
 
 
 class Team(Base):
@@ -22,22 +31,22 @@ class Team(Base):
         server_default=func.now(),
     )
 
-    players: Mapped[list["Player"]] = relationship(
+    players: Mapped[list[Player]] = relationship(
         back_populates="team",
         cascade="all, delete-orphan",
     )
-    home_stadiums: Mapped[list["Stadium"]] = relationship(back_populates="home_team")
-    home_matches: Mapped[list["Match"]] = relationship(
+    home_stadiums: Mapped[list[Stadium]] = relationship(back_populates="home_team")
+    home_matches: Mapped[list[Match]] = relationship(
         back_populates="home_team",
         foreign_keys="Match.home_team_id",
     )
-    away_matches: Mapped[list["Match"]] = relationship(
+    away_matches: Mapped[list[Match]] = relationship(
         back_populates="away_team",
         foreign_keys="Match.away_team_id",
     )
-    lineups: Mapped[list["MatchLineup"]] = relationship(back_populates="team")
-    events: Mapped[list["MatchEvent"]] = relationship(back_populates="team")
-    season_stats: Mapped[list["TeamSeasonStats"]] = relationship(
+    lineups: Mapped[list[MatchLineup]] = relationship(back_populates="team")
+    events: Mapped[list[MatchEvent]] = relationship(back_populates="team")
+    season_stats: Mapped[list[TeamSeasonStats]] = relationship(
         back_populates="team",
         cascade="all, delete-orphan",
     )

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
@@ -15,6 +16,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constants import CupStage, MatchStatus
 from app.db.base import Base, enum_column
+
+if TYPE_CHECKING:
+    from app.models.match_event import MatchEvent
+    from app.models.match_lineup import MatchLineup
+    from app.models.referee import Referee
+    from app.models.season import Season
+    from app.models.stadium import Stadium
+    from app.models.team import Team
+    from app.models.tournament import Tournament
 
 
 class Match(Base):
@@ -52,23 +62,23 @@ class Match(Base):
     ticket_sold: Mapped[int] = mapped_column(Integer, default=0)
     income: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
 
-    tournament: Mapped["Tournament"] = relationship(back_populates="matches")
-    season: Mapped["Season"] = relationship(back_populates="matches")
-    home_team: Mapped["Team"] = relationship(
+    tournament: Mapped[Tournament] = relationship(back_populates="matches")
+    season: Mapped[Season] = relationship(back_populates="matches")
+    home_team: Mapped[Team] = relationship(
         back_populates="home_matches",
         foreign_keys=[home_team_id],
     )
-    away_team: Mapped["Team"] = relationship(
+    away_team: Mapped[Team] = relationship(
         back_populates="away_matches",
         foreign_keys=[away_team_id],
     )
-    stadium: Mapped["Stadium"] = relationship(back_populates="matches")
-    referee: Mapped["Referee | None"] = relationship(back_populates="matches")
-    lineups: Mapped[list["MatchLineup"]] = relationship(
+    stadium: Mapped[Stadium] = relationship(back_populates="matches")
+    referee: Mapped[Referee | None] = relationship(back_populates="matches")
+    lineups: Mapped[list[MatchLineup]] = relationship(
         back_populates="match",
         cascade="all, delete-orphan",
     )
-    events: Mapped[list["MatchEvent"]] = relationship(
+    events: Mapped[list[MatchEvent]] = relationship(
         back_populates="match",
         cascade="all, delete-orphan",
     )

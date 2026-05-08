@@ -65,6 +65,19 @@ ruff check .
 black .
 ```
 
+## API Status Codes
+
+- `GET`: `200 OK`
+- create `POST`: `201 Created`
+- action `POST`, including login: `200 OK`
+- `PATCH`/`PUT`: `200 OK`
+- `DELETE`: `204 No Content`
+- invalid payload: `422 Unprocessable Entity`
+- invalid or missing JWT: `401 Unauthorized`
+- forbidden action: `403 Forbidden`
+- missing resource: `404 Not Found`
+- duplicate or scheduling conflict: `409 Conflict`
+
 ## Project Layout
 
 ```text

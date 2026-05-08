@@ -6,14 +6,25 @@ from passlib.context import CryptContext
 
 from app.core.config import settings
 
+BCRYPT_MAX_PASSWORD_BYTES = 72
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+def validate_bcrypt_password(password: str) -> None:
+    if len(password.encode("utf-8")) > BCRYPT_MAX_PASSWORD_BYTES:
+        raise ValueError("Password must not exceed 72 bytes for bcrypt.")
+
+
 def verify_password(plain_password: str, password_hash: str) -> bool:
+    try:
+        validate_bcrypt_password(plain_password)
+    except ValueError:
+        return False
     return password_context.verify(plain_password, password_hash)
 
 
 def get_password_hash(password: str) -> str:
+    validate_bcrypt_password(password)
     return password_context.hash(password)
 
 

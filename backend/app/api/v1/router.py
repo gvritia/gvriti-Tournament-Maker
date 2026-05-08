@@ -23,7 +23,9 @@ api_router.include_router(teams.router, prefix="/teams", tags=["teams"])
 api_router.include_router(players.router, prefix="/players", tags=["players"])
 api_router.include_router(stadiums.router, prefix="/stadiums", tags=["stadiums"])
 api_router.include_router(referees.router, prefix="/referees", tags=["referees"])
-api_router.include_router(tournaments.router, prefix="/tournaments", tags=["tournaments"])
+api_router.include_router(
+    tournaments.router, prefix="/tournaments", tags=["tournaments"]
+)
 api_router.include_router(matches.router, prefix="/matches", tags=["matches"])
 api_router.include_router(schedule.router, prefix="/schedule", tags=["schedule"])
 api_router.include_router(standings.router, prefix="/standings", tags=["standings"])

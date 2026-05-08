@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constants import TournamentStatus, TournamentType
 from app.db.base import Base, enum_column
+
+if TYPE_CHECKING:
+    from app.models.match import Match
+    from app.models.season import Season
 
 
 class Tournament(Base):
@@ -25,8 +30,8 @@ class Tournament(Base):
         server_default=func.now(),
     )
 
-    season: Mapped["Season"] = relationship(back_populates="tournaments")
-    matches: Mapped[list["Match"]] = relationship(
+    season: Mapped[Season] = relationship(back_populates="tournaments")
+    matches: Mapped[list[Match]] = relationship(
         back_populates="tournament",
         cascade="all, delete-orphan",
     )
