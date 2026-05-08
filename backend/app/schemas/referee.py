@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RefereeBase(BaseModel):
-    full_name: str
+    full_name: str = Field(min_length=1, max_length=160)
 
 
 class RefereeCreate(RefereeBase):
@@ -12,7 +12,7 @@ class RefereeCreate(RefereeBase):
 
 
 class RefereeUpdate(BaseModel):
-    full_name: str | None = None
+    full_name: str | None = Field(default=None, min_length=1, max_length=160)
 
 
 class RefereeRead(RefereeBase):

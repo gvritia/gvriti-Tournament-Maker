@@ -242,3 +242,107 @@ def test_stadium_crud_validates_home_team(client: TestClient) -> None:
         client.delete(f"/api/v1/stadiums/{stadium_id}", headers=headers).status_code
         == 204
     )
+
+
+def test_referee_crud(client: TestClient) -> None:
+    headers = auth_headers(client)
+
+    create_response = client.post(
+        "/api/v1/referees/",
+        json={"full_name": "Sergey Ivanov"},
+        headers=headers,
+    )
+
+    assert create_response.status_code == 201
+    referee_id = create_response.json()["id"]
+
+    duplicate_response = client.post(
+        "/api/v1/referees/",
+        json={"full_name": "Sergey Ivanov"},
+        headers=headers,
+    )
+    assert duplicate_response.status_code == 409
+
+    update_response = client.patch(
+        f"/api/v1/referees/{referee_id}",
+        json={"full_name": "Alexey Ivanov"},
+        headers=headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["full_name"] == "Alexey Ivanov"
+
+    assert (
+        client.delete(f"/api/v1/referees/{referee_id}", headers=headers).status_code
+        == 204
+    )
+    assert (
+        client.get(f"/api/v1/referees/{referee_id}", headers=headers).status_code == 404
+    )
+
+
+def test_tournament_crud_validates_season_and_name(client: TestClient) -> None:
+    headers = auth_headers(client)
+
+    missing_season_response = client.post(
+        "/api/v1/tournaments/",
+        json={
+            "season_id": 999,
+            "name": "Premier League",
+            "type": "championship",
+        },
+        headers=headers,
+    )
+    assert missing_season_response.status_code == 404
+
+    season_response = client.post(
+        "/api/v1/seasons/",
+        json={
+            "name": "2026",
+            "start_date": "2026-03-01",
+            "end_date": "2026-11-30",
+        },
+        headers=headers,
+    )
+    season_id = season_response.json()["id"]
+
+    create_response = client.post(
+        "/api/v1/tournaments/",
+        json={
+            "season_id": season_id,
+            "name": "Premier League",
+            "type": "championship",
+        },
+        headers=headers,
+    )
+    assert create_response.status_code == 201
+    tournament_id = create_response.json()["id"]
+
+    duplicate_response = client.post(
+        "/api/v1/tournaments/",
+        json={
+            "season_id": season_id,
+            "name": "Premier League",
+            "type": "cup",
+        },
+        headers=headers,
+    )
+    assert duplicate_response.status_code == 409
+
+    update_response = client.patch(
+        f"/api/v1/tournaments/{tournament_id}",
+        json={"status": "active"},
+        headers=headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["status"] == "active"
+
+    assert (
+        client.delete(
+            f"/api/v1/tournaments/{tournament_id}", headers=headers
+        ).status_code
+        == 204
+    )
+    assert (
+        client.get(f"/api/v1/tournaments/{tournament_id}", headers=headers).status_code
+        == 404
+    )

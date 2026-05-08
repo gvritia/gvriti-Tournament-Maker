@@ -10,9 +10,9 @@ match protocols, ticket prices, standings, and player statistics consistent.
 ## Football Competition Description
 
 The system stores clubs, their players and stadiums, seasons, tournaments, and
-matches. A season can contain both a championship and a cup. The championship
-uses home and away matches. The cup is a short knockout tournament with
-semifinals and a final.
+matches. A season can contain both a championship and a cup. The championship is
+double round-robin: every team plays every other team twice, once at home and
+once away. The cup is a short knockout tournament with semifinals and a final.
 
 The schedule must prevent unrealistic overload: a team cannot play multiple
 matches in one day and cannot play more than two matches in one week. These
@@ -40,11 +40,22 @@ checks must include both championship and cup matches.
 
 - A team cannot play more than one match per day.
 - A team cannot play more than two matches per week.
+- A week is counted from Monday through Sunday.
 - Calendar limits include both championship and cup matches.
 - A referee cannot officiate parallel matches.
-- Ticket price depends on stadium capacity and the teams' previous season
-  places.
+- Ticket price is calculated when a match is created and stays fixed unless the
+  organizer changes it manually.
+- Ticket price formula:
+  `total_price = (base_price + capacity_factor) * club_coefficient`.
+- `club_coefficient` is based on the participating clubs' table tier from the
+  previous season: top third is `2.0`, middle third is `1.5`, bottom third is
+  `1.1`.
 - Ticket price can be changed manually for a specific match.
+- Players with five accumulated yellow cards or a red card miss the next match.
+- Automatic lineup generation must replace unavailable players with eligible
+  teammates where possible.
+- Random match result generation must use realistic limits so scores and cards
+  stay plausible.
 - The cup consists of semifinals and a final.
 - The cup uses the first four teams from the previous season. If there is no
   previous season, the organizer selects teams manually.
@@ -66,6 +77,8 @@ checks must include both championship and cup matches.
 - Referee assignment with parallel-match validation.
 - Match lineup management.
 - Ticket price calculation and manual override.
+- Player suspension checks for lineups.
+- Random match result generation with realistic bounds.
 - Match protocol submission with score, goals, assists, saves, and cards.
 - Standings recalculation.
 - Player statistics and leaderboards for goals, assists, saves, yellow cards,
@@ -83,10 +96,10 @@ checks must include both championship and cup matches.
 
 ## Current Iteration
 
-The current iteration creates only the backend architecture skeleton. It includes
-FastAPI setup, settings, database connection, SQLAlchemy models, Pydantic
-schemas, Alembic configuration, repository and service placeholders, Docker
-Compose for PostgreSQL, healthcheck test, and project documentation.
+The current backend includes FastAPI setup, settings, database connection,
+SQLAlchemy models, Pydantic schemas, Alembic configuration, PostgreSQL Docker
+Compose setup, JWT auth, initial schema migration, and CRUD for seasons, teams,
+players, stadiums, referees, and tournaments.
 
 ## API Conventions
 
