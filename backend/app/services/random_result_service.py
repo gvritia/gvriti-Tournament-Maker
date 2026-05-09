@@ -2,7 +2,13 @@ from random import Random
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core.constants import CupStage, MatchEventType, MatchStatus, PlayerPosition
+from app.core.constants import (
+    CupStage,
+    MatchEventType,
+    MatchStatus,
+    PlayerPosition,
+    TournamentType,
+)
 from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
 from app.models.match import Match
 from app.models.match_event import MatchEvent
@@ -11,6 +17,8 @@ from app.repositories.match import MatchRepository
 from app.repositories.match_event import MatchEventRepository
 from app.repositories.player import PlayerRepository
 from app.schemas.random_result import RandomResultGenerate, RandomResultRead
+from app.services.standings_service import StandingsService
+from app.services.statistics_service import StatisticsService
 
 MAX_GOALS_PER_TEAM = 5
 MAX_YELLOW_CARDS_PER_TEAM = 5
@@ -26,10 +34,14 @@ class RandomResultService:
         matches: MatchRepository,
         events: MatchEventRepository,
         players: PlayerRepository,
+        standings: StandingsService,
+        statistics: StatisticsService,
     ) -> None:
         self.matches = matches
         self.events = events
         self.players = players
+        self.standings = standings
+        self.statistics = statistics
 
     def generate_for_match(
         self,
@@ -94,6 +106,7 @@ class RandomResultService:
             match.home_score = home_score
             match.away_score = away_score
             match.status = MatchStatus.FINISHED
+            self._recalculate_finished_match_totals(match)
             self.matches.db.commit()
             self.matches.db.refresh(match)
         except IntegrityError as exc:
@@ -106,6 +119,12 @@ class RandomResultService:
             match=match,
             events=self.events.list_by_match(match.id),
         )
+
+    def _recalculate_finished_match_totals(self, match: Match) -> None:
+        self.matches.db.flush()
+        if match.tournament.type == TournamentType.CHAMPIONSHIP:
+            self.standings.rebuild_for_season(match.season_id)
+        self.statistics.rebuild_player_stats_for_season(match.season_id)
 
     def _get_match(self, match_id: int) -> Match:
         match = self.matches.get(match_id)

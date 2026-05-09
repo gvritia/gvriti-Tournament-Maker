@@ -2,6 +2,28 @@
 
 ## 2026-05-09
 
+### Automatic Standings And Statistics Refresh
+
+- Added automatic season statistics refresh after protocol-based match finish
+  and random result generation.
+- Championship standings now refresh automatically after finished championship
+  matches, while finished cup matches update player statistics without changing
+  league standings.
+- Kept manual standings/statistics recalculation endpoints intact by sharing the
+  same non-committing rebuild logic with match-finishing services.
+- Added tests for championship finish refresh, cup finish behavior, random
+  result refresh, and repeated finish/generation duplicate prevention.
+- Changed files: `backend/app/api/v1/endpoints/protocol.py`,
+  `backend/app/api/v1/endpoints/random_results.py`,
+  `backend/app/services/match_protocol_service.py`,
+  `backend/app/services/random_result_service.py`,
+  `backend/app/services/standings_service.py`,
+  `backend/app/services/statistics_service.py`,
+  `backend/tests/test_match_protocol.py`, and
+  `backend/tests/test_random_results.py`.
+- Next steps: add schedule filters, polish cup team selection by previous season
+  place, or add CI.
+
 ### Automatic Lineup Generation
 
 - Added authenticated lineup generation endpoint through

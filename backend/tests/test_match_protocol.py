@@ -42,13 +42,15 @@ def create_tournament(
     client: TestClient,
     headers: dict[str, str],
     season_id: int,
+    *,
+    tournament_type: str = "championship",
 ) -> int:
     response = client.post(
         "/api/v1/tournaments/",
         json={
             "season_id": season_id,
             "name": "Premier League",
-            "type": "championship",
+            "type": tournament_type,
         },
         headers=headers,
     )
@@ -135,9 +137,15 @@ def setup_protocol_context(
     headers: dict[str, str],
     *,
     include_extra_team: bool = False,
+    tournament_type: str = "championship",
 ) -> dict[str, Any]:
     season_id = create_season(client, headers)
-    tournament_id = create_tournament(client, headers, season_id)
+    tournament_id = create_tournament(
+        client,
+        headers,
+        season_id,
+        tournament_type=tournament_type,
+    )
     stadium_id = create_stadium(client, headers)
     home_team_id = create_team(client, headers, "Home Team")
     away_team_id = create_team(client, headers, "Away Team")
@@ -186,6 +194,9 @@ def setup_protocol_context(
         stadium_id=stadium_id,
     )
     return {
+        "season_id": season_id,
+        "tournament_id": tournament_id,
+        "stadium_id": stadium_id,
         "home_team_id": home_team_id,
         "away_team_id": away_team_id,
         "extra_team_id": extra_team_id,
@@ -358,6 +369,116 @@ def test_finish_match_success(client: TestClient) -> None:
     assert response.json()["status"] == "finished"
     assert response.json()["home_score"] == 1
     assert response.json()["away_score"] == 0
+
+
+def test_finish_championship_match_recalculates_standings_and_player_stats(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_protocol_context(client, headers)
+    match_id = context["match"]["id"]
+    add_event(
+        client,
+        headers,
+        match_id=match_id,
+        payload=create_event_payload(
+            team_id=context["home_team_id"],
+            player_id=context["home_player_id"],
+            assist_player_id=context["home_assist_id"],
+            event_type="goal",
+        ),
+    )
+
+    finish_response = client.post(
+        f"/api/v1/matches/{match_id}/finish",
+        json={"home_score": 1, "away_score": 0},
+        headers=headers,
+    )
+    standings_response = client.get(
+        f"/api/v1/standings/seasons/{context['season_id']}",
+        headers=headers,
+    )
+    stats_response = client.get(
+        f"/api/v1/statistics/seasons/{context['season_id']}/players",
+        headers=headers,
+    )
+    repeated_finish_response = client.post(
+        f"/api/v1/matches/{match_id}/finish",
+        json={"home_score": 1, "away_score": 0},
+        headers=headers,
+    )
+    repeated_stats_response = client.get(
+        f"/api/v1/statistics/seasons/{context['season_id']}/players",
+        headers=headers,
+    )
+
+    assert finish_response.status_code == 200
+    assert standings_response.status_code == 200
+    standings = standings_response.json()
+    assert [row["team_id"] for row in standings] == [
+        context["home_team_id"],
+        context["away_team_id"],
+    ]
+    assert standings[0]["played"] == 1
+    assert standings[0]["wins"] == 1
+    assert standings[0]["points"] == 3
+    assert standings[0]["goals_scored"] == 1
+    assert standings[0]["goals_conceded"] == 0
+    assert standings[1]["played"] == 1
+    assert standings[1]["losses"] == 1
+    assert standings[1]["points"] == 0
+
+    assert stats_response.status_code == 200
+    stats_by_player = {row["player_id"]: row for row in stats_response.json()}
+    assert stats_by_player[context["home_player_id"]]["goals"] == 1
+    assert stats_by_player[context["home_assist_id"]]["assists"] == 1
+
+    assert repeated_finish_response.status_code == 400
+    assert repeated_stats_response.json() == stats_response.json()
+
+
+def test_finish_cup_match_updates_player_stats_without_standings(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_protocol_context(
+        client,
+        headers,
+        tournament_type="cup",
+    )
+    match_id = context["match"]["id"]
+    add_event(
+        client,
+        headers,
+        match_id=match_id,
+        payload=create_event_payload(
+            team_id=context["away_team_id"],
+            player_id=context["away_player_id"],
+            event_type="goal",
+        ),
+    )
+
+    finish_response = client.post(
+        f"/api/v1/matches/{match_id}/finish",
+        json={"home_score": 0, "away_score": 1},
+        headers=headers,
+    )
+    standings_response = client.get(
+        f"/api/v1/standings/seasons/{context['season_id']}",
+        headers=headers,
+    )
+    stats_response = client.get(
+        f"/api/v1/statistics/seasons/{context['season_id']}/players",
+        headers=headers,
+    )
+
+    assert finish_response.status_code == 200
+    assert standings_response.status_code == 200
+    assert standings_response.json() == []
+
+    assert stats_response.status_code == 200
+    stats_by_player = {row["player_id"]: row for row in stats_response.json()}
+    assert stats_by_player[context["away_player_id"]]["goals"] == 1
 
 
 def test_finish_match_rejects_score_that_does_not_match_goals(

@@ -51,6 +51,17 @@ class StatisticsService:
         season_id: int,
     ) -> list[PlayerSeasonStats]:
         self._ensure_season_exists(season_id)
+        try:
+            self.rebuild_player_stats_for_season(season_id)
+            self.player_stats.db.commit()
+        except IntegrityError as exc:
+            self.player_stats.db.rollback()
+            raise ConflictError(
+                "Could not recalculate player statistics because of a conflict."
+            ) from exc
+        return self.player_stats.list_by_season(season_id)
+
+    def rebuild_player_stats_for_season(self, season_id: int) -> None:
         events = self.events.list_finished_events_by_season(season_id)
         accumulators = self._build_accumulators(season_id=season_id, events=events)
 
@@ -67,15 +78,6 @@ class StatisticsService:
                     red_cards=accumulator.red_cards,
                 )
             )
-
-        try:
-            self.player_stats.db.commit()
-        except IntegrityError as exc:
-            self.player_stats.db.rollback()
-            raise ConflictError(
-                "Could not recalculate player statistics because of a conflict."
-            ) from exc
-        return self.player_stats.list_by_season(season_id)
 
     def get_leaders(
         self,

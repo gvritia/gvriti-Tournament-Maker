@@ -1,6 +1,6 @@
 from sqlalchemy.exc import IntegrityError
 
-from app.core.constants import MatchStatus
+from app.core.constants import MatchStatus, TournamentType
 from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
 from app.models.match import Match
 from app.models.match_event import MatchEvent
@@ -10,6 +10,8 @@ from app.repositories.match_event import MatchEventRepository
 from app.repositories.player import PlayerRepository
 from app.repositories.team import TeamRepository
 from app.schemas.match_event import MatchEventCreate, MatchEventUpdate, MatchFinish
+from app.services.standings_service import StandingsService
+from app.services.statistics_service import StatisticsService
 
 
 class MatchProtocolService:
@@ -19,11 +21,15 @@ class MatchProtocolService:
         events: MatchEventRepository,
         players: PlayerRepository,
         teams: TeamRepository,
+        standings: StandingsService,
+        statistics: StatisticsService,
     ) -> None:
         self.matches = matches
         self.events = events
         self.players = players
         self.teams = teams
+        self.standings = standings
+        self.statistics = statistics
 
     def list_match_events(self, match_id: int) -> list[MatchEvent]:
         self._get_match(match_id)
@@ -128,6 +134,7 @@ class MatchProtocolService:
         match.away_score = payload.away_score
         match.status = MatchStatus.FINISHED
         try:
+            self._recalculate_finished_match_totals(match)
             self.matches.db.commit()
             self.matches.db.refresh(match)
         except IntegrityError as exc:
@@ -136,6 +143,12 @@ class MatchProtocolService:
                 "Could not finish match because of a conflict."
             ) from exc
         return match
+
+    def _recalculate_finished_match_totals(self, match: Match) -> None:
+        self.matches.db.flush()
+        if match.tournament.type == TournamentType.CHAMPIONSHIP:
+            self.standings.rebuild_for_season(match.season_id)
+        self.statistics.rebuild_player_stats_for_season(match.season_id)
 
     def _get_match(self, match_id: int) -> Match:
         match = self.matches.get(match_id)

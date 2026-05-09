@@ -80,6 +80,12 @@ checks must include both championship and cup matches.
 - Standings order uses points, goal difference, goals scored, and then `team_id`
   as a stable final tie-breaker.
 - Player season statistics are recalculated from events in finished matches.
+- Finishing a match through protocol submission or random result generation
+  automatically refreshes player season statistics for that season.
+- Finishing a championship match through protocol submission or random result
+  generation automatically refreshes championship standings for that season.
+- Finishing a cup match refreshes player season statistics, but does not affect
+  championship standings.
 - Assist totals include explicit `assist` events and `assist_player_id` recorded
   on goal events.
 - Automatic lineup generation must replace unavailable players with eligible
@@ -158,6 +164,9 @@ can generate semifinals for four selected teams, generate the final from
 finished semifinal winners, and return a bracket view. Random result generation
 can create bounded protocol events and finish scheduled matches automatically.
 Lineup endpoints can also generate an eligible match lineup automatically.
+Finishing a match through either protocol submission or random result generation
+automatically refreshes player statistics for the season and refreshes
+championship standings when the match belongs to the championship.
 
 ## API Conventions
 

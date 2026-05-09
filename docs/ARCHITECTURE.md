@@ -48,15 +48,20 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   replace an existing team lineup.
 - `MatchProtocolService` owns match event recording and match finishing. It
   validates participant teams, player-team membership, optional assist players,
-  mutable match status, and final score consistency with goal events.
+  mutable match status, and final score consistency with goal events. When a
+  match is finished, it refreshes player statistics for the season and refreshes
+  championship standings only for championship matches.
 - `RandomResultService` owns random match result generation. It creates bounded
-  protocol events, rejects matches with existing protocol events, and finishes
-  the match in the same transaction.
+  protocol events, rejects matches with existing protocol events, finishes the
+  match, and refreshes the same season standings/statistics in one transaction.
 - `StandingsService` recalculates `TeamSeasonStats` from finished championship
   matches and orders places by points, goal difference, goals scored, then
-  `team_id`.
+  `team_id`. Manual recalculate endpoints remain available, while finish/random
+  services can reuse the same rebuild logic inside their own transaction.
 - `StatisticsService` recalculates `PlayerSeasonStats` from protocol events in
-  finished matches and exposes leaderboards by supported stat metrics.
+  finished matches and exposes leaderboards by supported stat metrics. Manual
+  recalculate endpoints remain available, while finish/random services can
+  reuse the same rebuild logic inside their own transaction.
 
 ## Implemented Domain Services
 

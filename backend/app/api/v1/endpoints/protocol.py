@@ -7,6 +7,11 @@ from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
 from app.repositories.match import MatchRepository
 from app.repositories.match_event import MatchEventRepository
 from app.repositories.player import PlayerRepository
+from app.repositories.season import SeasonRepository
+from app.repositories.stats import (
+    PlayerSeasonStatsRepository,
+    TeamSeasonStatsRepository,
+)
 from app.repositories.team import TeamRepository
 from app.schemas.match import MatchRead
 from app.schemas.match_event import (
@@ -16,16 +21,30 @@ from app.schemas.match_event import (
     MatchFinish,
 )
 from app.services.match_protocol_service import MatchProtocolService
+from app.services.standings_service import StandingsService
+from app.services.statistics_service import StatisticsService
 
 router = APIRouter()
 
 
 def get_match_protocol_service(db: DbSession) -> MatchProtocolService:
+    matches = MatchRepository(db)
+    events = MatchEventRepository(db)
     return MatchProtocolService(
-        matches=MatchRepository(db),
-        events=MatchEventRepository(db),
+        matches=matches,
+        events=events,
         players=PlayerRepository(db),
         teams=TeamRepository(db),
+        standings=StandingsService(
+            seasons=SeasonRepository(db),
+            matches=matches,
+            team_stats=TeamSeasonStatsRepository(db),
+        ),
+        statistics=StatisticsService(
+            seasons=SeasonRepository(db),
+            events=events,
+            player_stats=PlayerSeasonStatsRepository(db),
+        ),
     )
 
 

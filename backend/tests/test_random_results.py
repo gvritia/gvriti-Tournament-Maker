@@ -281,6 +281,56 @@ def test_generate_random_result_finishes_match_and_creates_bounded_protocol(
     assert list_events_response.status_code == 200
     assert list_events_response.json() == events
 
+    standings_response = client.get(
+        f"/api/v1/standings/seasons/{context['season_id']}",
+        headers=headers,
+    )
+    stats_response = client.get(
+        f"/api/v1/statistics/seasons/{context['season_id']}/players",
+        headers=headers,
+    )
+
+    assert standings_response.status_code == 200
+    standings_by_team = {row["team_id"]: row for row in standings_response.json()}
+    home_standing = standings_by_team[context["home_team_id"]]
+    away_standing = standings_by_team[context["away_team_id"]]
+    assert home_standing["played"] == 1
+    assert home_standing["goals_scored"] == match["home_score"]
+    assert home_standing["goals_conceded"] == match["away_score"]
+    assert away_standing["played"] == 1
+    assert away_standing["goals_scored"] == match["away_score"]
+    assert away_standing["goals_conceded"] == match["home_score"]
+
+    if match["home_score"] > match["away_score"]:
+        assert home_standing["points"] == 3
+        assert away_standing["points"] == 0
+    elif match["home_score"] == match["away_score"]:
+        assert home_standing["points"] == 1
+        assert away_standing["points"] == 1
+    else:
+        assert home_standing["points"] == 0
+        assert away_standing["points"] == 3
+
+    assert stats_response.status_code == 200
+    player_stats = stats_response.json()
+    assert sum(row["goals"] for row in player_stats) == (
+        match["home_score"] + match["away_score"]
+    )
+    assert sum(row["assists"] for row in player_stats) == sum(
+        1
+        for event in events
+        if event["event_type"] == "goal" and event["assist_player_id"] is not None
+    )
+    assert sum(row["saves"] for row in player_stats) == sum(
+        1 for event in events if event["event_type"] == "save"
+    )
+    assert sum(row["yellow_cards"] for row in player_stats) == sum(
+        1 for event in events if event["event_type"] == "yellow_card"
+    )
+    assert sum(row["red_cards"] for row in player_stats) == sum(
+        1 for event in events if event["event_type"] == "red_card"
+    )
+
 
 def test_generate_random_result_rejects_match_without_players(
     client: TestClient,
@@ -328,6 +378,14 @@ def test_generate_random_result_rejects_finished_match(client: TestClient) -> No
         headers=headers,
     )
     assert first_response.status_code == 200
+    stats_before = client.get(
+        f"/api/v1/statistics/seasons/{context['season_id']}/players",
+        headers=headers,
+    ).json()
+    standings_before = client.get(
+        f"/api/v1/standings/seasons/{context['season_id']}",
+        headers=headers,
+    ).json()
 
     response = client.post(
         f"/api/v1/matches/{context['match']['id']}/generate-random-result",
@@ -336,6 +394,20 @@ def test_generate_random_result_rejects_finished_match(client: TestClient) -> No
     )
 
     assert response.status_code == 400
+    assert (
+        client.get(
+            f"/api/v1/statistics/seasons/{context['season_id']}/players",
+            headers=headers,
+        ).json()
+        == stats_before
+    )
+    assert (
+        client.get(
+            f"/api/v1/standings/seasons/{context['season_id']}",
+            headers=headers,
+        ).json()
+        == standings_before
+    )
 
 
 def test_generate_random_result_returns_404_for_missing_match(

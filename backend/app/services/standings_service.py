@@ -59,6 +59,17 @@ class StandingsService:
 
     def recalculate_for_season(self, season_id: int) -> list[TeamSeasonStats]:
         self._ensure_season_exists(season_id)
+        try:
+            self.rebuild_for_season(season_id)
+            self.team_stats.db.commit()
+        except IntegrityError as exc:
+            self.team_stats.db.rollback()
+            raise ConflictError(
+                "Could not recalculate standings because of a conflict."
+            ) from exc
+        return self.team_stats.list_by_season(season_id)
+
+    def rebuild_for_season(self, season_id: int) -> None:
         matches = self.matches.list_championship_matches_by_season(season_id)
         accumulators = self._build_accumulators(
             season_id=season_id,
@@ -83,15 +94,6 @@ class StandingsService:
                     place=place,
                 )
             )
-
-        try:
-            self.team_stats.db.commit()
-        except IntegrityError as exc:
-            self.team_stats.db.rollback()
-            raise ConflictError(
-                "Could not recalculate standings because of a conflict."
-            ) from exc
-        return self.team_stats.list_by_season(season_id)
 
     def _ensure_season_exists(self, season_id: int) -> None:
         if self.seasons.get(season_id) is None:
