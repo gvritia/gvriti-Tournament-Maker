@@ -2,6 +2,26 @@
 
 ## 2026-05-09
 
+### Schedule Filters, Cup Auto-Selection, And CI
+
+- Added season schedule filters to
+  `/schedule/seasons/{season_id}/matches`: `team_id`, `tournament_id`,
+  `date_from`, and `date_to`.
+- Added cup semifinal generation mode using the top four teams by
+  `previous_season_place`, while preserving manual four-team selection when
+  previous season places are missing.
+- Added GitHub Actions backend CI for `pytest`, `ruff check .`,
+  `black --check .`, and `alembic check` against PostgreSQL.
+- Added tests for schedule filters, invalid schedule filters, cup automatic
+  previous-season selection, and manual cup fallback with unranked teams.
+- Changed files: `.github/workflows/backend-ci.yml`,
+  `backend/app/api/v1/endpoints/schedule.py`,
+  `backend/app/repositories/match.py`, `backend/app/repositories/team.py`,
+  `backend/app/schemas/cup.py`, `backend/app/services/cup_service.py`,
+  `backend/app/services/schedule_service.py`, `backend/tests/test_cups.py`,
+  and `backend/tests/test_schedule.py`.
+- Next steps: add seed/demo data and README/API flow for defense.
+
 ### Automatic Standings And Statistics Refresh
 
 - Added automatic season statistics refresh after protocol-based match finish

@@ -6,7 +6,8 @@ from app.schemas.match import MatchRead
 
 
 class CupSemifinalsGenerate(BaseModel):
-    team_ids: list[int] = Field(min_length=4, max_length=4)
+    team_ids: list[int] | None = Field(default=None, min_length=4, max_length=4)
+    use_previous_season_places: bool = False
     match_datetimes: list[datetime] = Field(min_length=2, max_length=2)
     fallback_stadium_id: int | None = Field(default=None, gt=0)
     stadium_ids_by_team: dict[int, int] = Field(default_factory=dict)

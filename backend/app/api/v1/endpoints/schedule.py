@@ -1,4 +1,6 @@
-from fastapi import APIRouter
+from datetime import date
+
+from fastapi import APIRouter, Query
 
 from app.api.deps import CurrentUser, DbSession
 from app.api.errors import app_error_to_http_exception
@@ -59,10 +61,20 @@ def list_season_matches(
     season_id: int,
     db: DbSession,
     _current_user: CurrentUser,
+    team_id: int | None = Query(default=None, gt=0),
+    tournament_id: int | None = Query(default=None, gt=0),
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> list[MatchRead]:
     try:
-        return get_schedule_service(db).list_season_matches(season_id)
-    except NotFoundError as exc:
+        return get_schedule_service(db).list_season_matches(
+            season_id,
+            team_id=team_id,
+            tournament_id=tournament_id,
+            date_from=date_from,
+            date_to=date_to,
+        )
+    except (BusinessRuleError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
 

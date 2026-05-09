@@ -63,15 +63,17 @@ def create_team(
     client: TestClient,
     headers: dict[str, str],
     name: str,
-    previous_season_place: int,
+    previous_season_place: int | None,
 ) -> int:
+    payload: dict[str, Any] = {
+        "name": name,
+        "city": "Moscow",
+    }
+    if previous_season_place is not None:
+        payload["previous_season_place"] = previous_season_place
     response = client.post(
         "/api/v1/teams/",
-        json={
-            "name": name,
-            "city": "Moscow",
-            "previous_season_place": previous_season_place,
-        },
+        json=payload,
         headers=headers,
     )
     assert response.status_code == 201
@@ -396,6 +398,85 @@ def test_generate_cup_semifinals_rejects_non_cup_tournament(
     )
 
     assert response.status_code == 400
+
+
+def test_generate_cup_semifinals_can_select_top_previous_season_teams(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_cup_context(client, headers, create_home_stadiums=False)
+    extra_team_id = create_team(client, headers, "Team 5", 5)
+    create_stadium(
+        client,
+        headers,
+        name="Team 5 Arena",
+        home_team_id=extra_team_id,
+    )
+
+    response = client.post(
+        f"/api/v1/cups/{context['cup_id']}/semifinals",
+        json={
+            "use_previous_season_places": True,
+            "match_datetimes": [
+                "2026-04-01T18:00:00",
+                "2026-04-02T18:00:00",
+            ],
+            "fallback_stadium_id": context["neutral_stadium_id"],
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    semifinals = response.json()
+    assert [(match["home_team_id"], match["away_team_id"]) for match in semifinals] == [
+        (context["team_ids"][0], context["team_ids"][3]),
+        (context["team_ids"][1], context["team_ids"][2]),
+    ]
+    assert extra_team_id not in {
+        team_id
+        for match in semifinals
+        for team_id in (match["home_team_id"], match["away_team_id"])
+    }
+
+
+def test_generate_cup_semifinals_requires_manual_selection_without_previous_places(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    season_id = create_season(client, headers)
+    cup_id = create_tournament(
+        client,
+        headers,
+        season_id,
+        name="National Cup",
+        tournament_type="cup",
+    )
+    team_ids = [
+        create_team(client, headers, f"Unranked Team {index}", None)
+        for index in range(1, 5)
+    ]
+    fallback_stadium_id = create_stadium(client, headers, name="Neutral Arena")
+
+    auto_response = client.post(
+        f"/api/v1/cups/{cup_id}/semifinals",
+        json={
+            "use_previous_season_places": True,
+            "match_datetimes": [
+                "2026-04-01T18:00:00",
+                "2026-04-02T18:00:00",
+            ],
+            "fallback_stadium_id": fallback_stadium_id,
+        },
+        headers=headers,
+    )
+    manual_response = client.post(
+        f"/api/v1/cups/{cup_id}/semifinals",
+        json=semifinal_payload(team_ids, fallback_stadium_id=fallback_stadium_id),
+        headers=headers,
+    )
+
+    assert auto_response.status_code == 400
+    assert manual_response.status_code == 201
 
 
 def test_generate_cup_semifinals_returns_404_for_missing_tournament(

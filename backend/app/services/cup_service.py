@@ -52,7 +52,7 @@ class CupService:
             stage=CupStage.SEMIFINAL,
             message="Cup semifinals already exist.",
         )
-        team_ids = self._validate_team_ids(payload.team_ids)
+        team_ids = self._resolve_semifinal_team_ids(payload)
         teams_by_id = self._get_teams_by_id(team_ids)
         stadiums_by_team_id = self._resolve_stadiums_by_team_id(
             team_ids=team_ids,
@@ -242,6 +242,26 @@ class CupService:
                 raise BusinessRuleError("Cup semifinals require four unique teams.")
             seen.add(team_id)
         return team_ids
+
+    def _resolve_semifinal_team_ids(self, payload: CupSemifinalsGenerate) -> list[int]:
+        if payload.use_previous_season_places:
+            if payload.team_ids is not None:
+                raise BusinessRuleError(
+                    "Provide either manual team_ids or use previous season places."
+                )
+            teams = self.teams.list_top_by_previous_season_place(limit=4)
+            if len(teams) < 4:
+                raise BusinessRuleError(
+                    "Automatic cup semifinal selection requires at least four "
+                    "teams with previous season places."
+                )
+            return [team.id for team in teams]
+
+        if payload.team_ids is None:
+            raise BusinessRuleError(
+                "Cup semifinal generation requires four selected team ids."
+            )
+        return self._validate_team_ids(payload.team_ids)
 
     def _get_teams_by_id(self, team_ids: list[int]) -> dict[int, Team]:
         return {team_id: self._get_team(team_id) for team_id in team_ids}

@@ -48,6 +48,8 @@ checks must include both championship and cup matches.
 - Championship schedule generation uses a team's home stadium when available;
   otherwise the organizer must provide a team stadium mapping or fallback
   stadium.
+- Season schedule views can be filtered by team, tournament, and inclusive date
+  range.
 - A referee cannot officiate parallel matches.
 - Ticket price is calculated when a match is created and stays fixed unless the
   organizer changes it manually.
@@ -102,8 +104,8 @@ checks must include both championship and cup matches.
   capped at ten per team.
 - Randomly generated cup semifinal/final results must have a clear winner.
 - The cup consists of semifinals and a final.
-- The cup uses the first four teams from the previous season. If there is no
-  previous season, the organizer selects teams manually.
+- The cup can use the first four teams by `previous_season_place`. If previous
+  season places are missing, the organizer selects teams manually.
 - Cup semifinal generation accepts exactly four unique teams, creates seeded
   pairings `1 vs 4` and `2 vs 3`, and assigns stadiums through home stadiums,
   explicit team mapping, or a fallback stadium.
@@ -122,7 +124,8 @@ checks must include both championship and cup matches.
 - Organizer registration and JWT login.
 - CRUD for teams, players, stadiums, referees, seasons, and tournaments.
 - Championship creation.
-- Cup tournament creation for four teams.
+- Cup tournament creation for four teams, either manually or from previous
+  season places.
 - Automatic championship schedule generation.
 - Home and away match accounting.
 - Match moving with calendar validation.
@@ -135,7 +138,8 @@ checks must include both championship and cup matches.
 - Standings recalculation.
 - Player statistics and leaderboards for goals, assists, saves, yellow cards,
   and red cards.
-- Match schedule and stadium schedule views.
+- Match schedule and stadium schedule views, including season schedule filters
+  by team, tournament, and date range.
 - Cup bracket view.
 
 ## Not In MVP
@@ -159,11 +163,13 @@ score validation against recorded goals. Standings endpoints can recalculate and
 return the championship table for a season. Player statistics endpoints can
 recalculate season totals and return leaderboards for goals, assists, saves,
 yellow cards, and red cards. Schedule endpoints can generate double round-robin
-championship matches and return season or stadium match schedules. Cup endpoints
-can generate semifinals for four selected teams, generate the final from
-finished semifinal winners, and return a bracket view. Random result generation
-can create bounded protocol events and finish scheduled matches automatically.
-Lineup endpoints can also generate an eligible match lineup automatically.
+championship matches, return stadium match schedules, and return season match
+schedules filtered by team, tournament, and date range. Cup endpoints can
+generate semifinals from four selected teams or automatically from the top four
+teams by previous season place, generate the final from finished semifinal
+winners, and return a bracket view. Random result generation can create bounded
+protocol events and finish scheduled matches automatically. Lineup endpoints can
+also generate an eligible match lineup automatically.
 Finishing a match through either protocol submission or random result generation
 automatically refreshes player statistics for the season and refreshes
 championship standings when the match belongs to the championship.

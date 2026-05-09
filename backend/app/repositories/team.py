@@ -14,3 +14,12 @@ class TeamRepository(BaseRepository[Team]):
 
     def get_previous_season_table_size(self) -> int | None:
         return self.db.scalar(select(func.max(Team.previous_season_place)))
+
+    def list_top_by_previous_season_place(self, *, limit: int) -> list[Team]:
+        statement = (
+            select(Team)
+            .where(Team.previous_season_place.is_not(None))
+            .order_by(Team.previous_season_place, Team.id)
+            .limit(limit)
+        )
+        return list(self.db.scalars(statement).all())

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
@@ -172,13 +172,47 @@ class ScheduleService:
             ) from exc
         return created_matches
 
-    def list_season_matches(self, season_id: int) -> list[Match]:
-        if self.seasons is None:
+    def list_season_matches(
+        self,
+        season_id: int,
+        *,
+        team_id: int | None = None,
+        tournament_id: int | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+    ) -> list[Match]:
+        if self.seasons is None or self.teams is None or self.tournaments is None:
             raise RuntimeError("Season repository is required for schedule views.")
         season = self.seasons.get(season_id)
         if season is None:
             raise NotFoundError("Season not found.")
-        return self.matches.list_by_season(season_id)
+        if team_id is not None and self.teams.get(team_id) is None:
+            raise NotFoundError("Team not found.")
+        if tournament_id is not None:
+            tournament = self.tournaments.get(tournament_id)
+            if tournament is None:
+                raise NotFoundError("Tournament not found.")
+            if tournament.season_id != season_id:
+                raise BusinessRuleError("Tournament does not belong to this season.")
+
+        starts_at = (
+            datetime.combine(date_from, time.min) if date_from is not None else None
+        )
+        ends_at = (
+            datetime.combine(date_to + timedelta(days=1), time.min)
+            if date_to is not None
+            else None
+        )
+        if starts_at is not None and ends_at is not None and starts_at >= ends_at:
+            raise BusinessRuleError("date_from cannot be later than date_to.")
+
+        return self.matches.list_by_season(
+            season_id,
+            team_id=team_id,
+            tournament_id=tournament_id,
+            starts_at=starts_at,
+            ends_at=ends_at,
+        )
 
     def list_stadium_matches(self, stadium_id: int) -> list[Match]:
         if self.stadiums is None:

@@ -25,11 +25,15 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   assignment, and manual ticket price changes.
 - `CupService` owns cup semifinal generation, final generation, and bracket
   reads. Cup matches are regular `Match` rows marked with `CupStage`.
+- Cup semifinals can be generated from manual team ids or from the top four
+  teams ordered by `previous_season_place`; if previous season places are not
+  available, manual selection remains the supported path.
 - Cup final generation is derived from finished semifinal winners and rejects
   unfinished or drawn semifinals.
 - `ScheduleService` validates team match limits across all tournaments using
   Monday-through-Sunday weeks, generates championship double round-robin
-  schedules, and exposes season/stadium schedule reads.
+  schedules, and exposes season/stadium schedule reads. Season schedule reads
+  support optional filters by team, tournament, and inclusive date range.
 - Championship schedule generation creates all matches in one transaction and
   rolls back the batch if any generated match violates calendar limits.
 - Championship schedule generation resolves stadiums by home team first, then
@@ -62,16 +66,19 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   finished matches and exposes leaderboards by supported stat metrics. Manual
   recalculate endpoints remain available, while finish/random services can
   reuse the same rebuild logic inside their own transaction.
+- GitHub Actions runs backend CI on pushes to `master`/`main` and pull requests:
+  tests, `ruff check .`, `black --check .`, and Alembic migration drift checks
+  against PostgreSQL.
 
 ## Implemented Domain Services
 
 - `MatchService`: match CRUD, rescheduling, referee assignment, and manual
   ticket price updates.
-- `CupService`: four-team semifinal generation, final generation from semifinal
-  winners, and bracket reads.
+- `CupService`: four-team semifinal generation from manual ids or previous
+  season places, final generation from semifinal winners, and bracket reads.
 - `ScheduleService`: calendar validation for one match per day and two matches
   per Monday-through-Sunday week, double round-robin championship generation,
-  and season/stadium schedule reads.
+  and season/stadium schedule reads with season-level filters.
 - `TicketPriceService`: default ticket pricing.
 - `ValidationService`: referee availability checks.
 - `LineupService`: match lineup listing, creation, update, deletion, automatic

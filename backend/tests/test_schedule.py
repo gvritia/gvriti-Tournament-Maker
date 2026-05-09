@@ -261,6 +261,99 @@ def test_schedule_views_list_season_and_stadium_matches(
     )
 
 
+def test_season_schedule_view_filters_by_team_tournament_and_date_range(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_schedule_context(client, headers)
+    response = client.post(
+        f"/api/v1/schedule/championships/{context['championship_id']}/generate",
+        json=generate_payload(context["team_ids"]),
+        headers=headers,
+    )
+    assert response.status_code == 201
+    cup_id = create_tournament(
+        client,
+        headers,
+        context["season_id"],
+        name="National Cup",
+        tournament_type="cup",
+    )
+    cup_match = create_match(
+        client,
+        headers,
+        tournament_id=cup_id,
+        season_id=context["season_id"],
+        home_team_id=context["team_ids"][0],
+        away_team_id=context["team_ids"][2],
+        stadium_id=context["stadium_ids"][0],
+        match_datetime="2026-04-29T18:00:00",
+    )
+
+    team_response = client.get(
+        f"/api/v1/schedule/seasons/{context['season_id']}/matches",
+        params={"team_id": context["team_ids"][0]},
+        headers=headers,
+    )
+    championship_response = client.get(
+        f"/api/v1/schedule/seasons/{context['season_id']}/matches",
+        params={"tournament_id": context["championship_id"]},
+        headers=headers,
+    )
+    cup_response = client.get(
+        f"/api/v1/schedule/seasons/{context['season_id']}/matches",
+        params={"tournament_id": cup_id},
+        headers=headers,
+    )
+    date_response = client.get(
+        f"/api/v1/schedule/seasons/{context['season_id']}/matches",
+        params={"date_from": "2026-04-05", "date_to": "2026-04-13"},
+        headers=headers,
+    )
+    combined_response = client.get(
+        f"/api/v1/schedule/seasons/{context['season_id']}/matches",
+        params={
+            "team_id": context["team_ids"][0],
+            "tournament_id": context["championship_id"],
+            "date_from": "2026-04-05",
+            "date_to": "2026-04-13",
+        },
+        headers=headers,
+    )
+
+    assert team_response.status_code == 200
+    assert len(team_response.json()) == 7
+    assert all(
+        context["team_ids"][0] in {match["home_team_id"], match["away_team_id"]}
+        for match in team_response.json()
+    )
+
+    assert championship_response.status_code == 200
+    assert len(championship_response.json()) == 12
+    assert {match["tournament_id"] for match in championship_response.json()} == {
+        context["championship_id"]
+    }
+
+    assert cup_response.status_code == 200
+    assert cup_response.json() == [cup_match]
+
+    assert date_response.status_code == 200
+    assert len(date_response.json()) == 6
+    assert all(
+        "2026-04-05" <= match["match_datetime"][:10] <= "2026-04-13"
+        for match in date_response.json()
+    )
+
+    assert combined_response.status_code == 200
+    assert len(combined_response.json()) == 3
+    assert all(
+        match["tournament_id"] == context["championship_id"]
+        and context["team_ids"][0] in {match["home_team_id"], match["away_team_id"]}
+        and "2026-04-05" <= match["match_datetime"][:10] <= "2026-04-13"
+        for match in combined_response.json()
+    )
+
+
 def test_generate_championship_schedule_rejects_cup_tournament(
     client: TestClient,
 ) -> None:
@@ -348,6 +441,51 @@ def test_schedule_views_return_404_for_missing_resources(
     response = client.get(path, headers=headers)
 
     assert response.status_code == 404
+
+
+def test_season_schedule_view_rejects_invalid_filters(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_schedule_context(client, headers)
+    other_season_response = client.post(
+        "/api/v1/seasons/",
+        json={
+            "name": "2027",
+            "start_date": "2027-03-01",
+            "end_date": "2027-11-30",
+        },
+        headers=headers,
+    )
+    assert other_season_response.status_code == 201
+    other_season_id = int(other_season_response.json()["id"])
+    other_tournament_id = create_tournament(
+        client,
+        headers,
+        other_season_id,
+        name="Other League",
+        tournament_type="championship",
+    )
+
+    missing_team_response = client.get(
+        f"/api/v1/schedule/seasons/{context['season_id']}/matches",
+        params={"team_id": 999},
+        headers=headers,
+    )
+    other_tournament_response = client.get(
+        f"/api/v1/schedule/seasons/{context['season_id']}/matches",
+        params={"tournament_id": other_tournament_id},
+        headers=headers,
+    )
+    invalid_dates_response = client.get(
+        f"/api/v1/schedule/seasons/{context['season_id']}/matches",
+        params={"date_from": "2026-04-10", "date_to": "2026-04-01"},
+        headers=headers,
+    )
+
+    assert missing_team_response.status_code == 404
+    assert other_tournament_response.status_code == 400
+    assert invalid_dates_response.status_code == 400
 
 
 def test_generate_championship_schedule_rejects_existing_calendar_conflict(
