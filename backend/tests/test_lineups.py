@@ -77,12 +77,13 @@ def create_player(
     team_id: int,
     full_name: str,
     number: int,
+    position: str = "forward",
 ) -> int:
     response = client.post(
         "/api/v1/players/",
         json={
             "full_name": full_name,
-            "position": "forward",
+            "position": position,
             "number": number,
             "team_id": team_id,
         },
@@ -386,6 +387,191 @@ def test_lineup_rejects_suspended_player_after_red_card(
     assert response.status_code == 409
 
 
+def test_generate_lineup_selects_eligible_players(client: TestClient) -> None:
+    headers = auth_headers(client)
+    context = setup_lineup_context(client, headers)
+    goalkeeper_id = create_player(
+        client,
+        headers,
+        team_id=context["home_team_id"],
+        full_name="Home Goalkeeper",
+        number=1,
+        position="goalkeeper",
+    )
+    defender_id = create_player(
+        client,
+        headers,
+        team_id=context["home_team_id"],
+        full_name="Home Defender",
+        number=5,
+        position="defender",
+    )
+
+    response = client.post(
+        f"/api/v1/matches/{context['match']['id']}/lineups/generate",
+        json={
+            "team_id": context["home_team_id"],
+            "lineup_size": 3,
+            "starting_size": 2,
+            "preferred_player_ids": [context["second_home_player_id"]],
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    lineups = response.json()
+    assert len(lineups) == 3
+    assert [lineup["is_starting"] for lineup in lineups] == [True, True, False]
+    assert lineups[0]["player_id"] == context["second_home_player_id"]
+    generated_player_ids = {lineup["player_id"] for lineup in lineups}
+    assert goalkeeper_id in generated_player_ids
+    assert defender_id in generated_player_ids
+    assert len({lineup["number"] for lineup in lineups}) == 3
+
+
+def test_generate_lineup_replaces_suspended_preferred_player(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_lineup_context(client, headers)
+    replacement_player_id = create_player(
+        client,
+        headers,
+        team_id=context["home_team_id"],
+        full_name="Home Replacement",
+        number=14,
+    )
+    next_match = create_match(
+        client,
+        headers,
+        tournament_id=context["tournament_id"],
+        season_id=context["season_id"],
+        home_team_id=context["home_team_id"],
+        away_team_id=context["away_team_id"],
+        stadium_id=context["stadium_id"],
+        match_datetime="2026-04-03T18:00:00",
+    )
+    db_session.add(
+        MatchEvent(
+            match_id=context["match"]["id"],
+            team_id=context["home_team_id"],
+            player_id=context["home_player_id"],
+            event_type=MatchEventType.RED_CARD,
+            minute=80,
+        )
+    )
+    db_session.commit()
+
+    response = client.post(
+        f"/api/v1/matches/{next_match['id']}/lineups/generate",
+        json={
+            "team_id": context["home_team_id"],
+            "lineup_size": 2,
+            "preferred_player_ids": [context["home_player_id"]],
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    generated_player_ids = {lineup["player_id"] for lineup in response.json()}
+    assert context["home_player_id"] not in generated_player_ids
+    assert replacement_player_id in generated_player_ids
+
+
+def test_generate_lineup_rejects_existing_team_lineup(client: TestClient) -> None:
+    headers = auth_headers(client)
+    context = setup_lineup_context(client, headers)
+    create_response = client.post(
+        f"/api/v1/matches/{context['match']['id']}/lineups",
+        json=create_lineup_payload(
+            team_id=context["home_team_id"],
+            player_id=context["home_player_id"],
+            number=9,
+        ),
+        headers=headers,
+    )
+    assert create_response.status_code == 201
+
+    response = client.post(
+        f"/api/v1/matches/{context['match']['id']}/lineups/generate",
+        json={"team_id": context["home_team_id"], "lineup_size": 2},
+        headers=headers,
+    )
+
+    assert response.status_code == 409
+
+
+def test_generate_lineup_can_replace_existing_team_lineup(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_lineup_context(client, headers)
+    create_response = client.post(
+        f"/api/v1/matches/{context['match']['id']}/lineups",
+        json=create_lineup_payload(
+            team_id=context["home_team_id"],
+            player_id=context["home_player_id"],
+            number=9,
+        ),
+        headers=headers,
+    )
+    assert create_response.status_code == 201
+
+    response = client.post(
+        f"/api/v1/matches/{context['match']['id']}/lineups/generate",
+        json={
+            "team_id": context["home_team_id"],
+            "lineup_size": 2,
+            "replace_existing": True,
+        },
+        headers=headers,
+    )
+    list_response = client.get(
+        f"/api/v1/matches/{context['match']['id']}/lineups",
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    assert len(response.json()) == 2
+    assert list_response.status_code == 200
+    assert len(list_response.json()) == 2
+
+
+def test_generate_lineup_rejects_wrong_team_preferred_player(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_lineup_context(client, headers, include_extra_team=True)
+
+    response = client.post(
+        f"/api/v1/matches/{context['match']['id']}/lineups/generate",
+        json={
+            "team_id": context["home_team_id"],
+            "lineup_size": 2,
+            "preferred_player_ids": [context["extra_player_id"]],
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+
+
+def test_generate_lineup_rejects_not_enough_eligible_players(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_lineup_context(client, headers)
+
+    response = client.post(
+        f"/api/v1/matches/{context['match']['id']}/lineups/generate",
+        json={"team_id": context["home_team_id"], "lineup_size": 3},
+        headers=headers,
+    )
+
+    assert response.status_code == 409
+
+
 @pytest.mark.parametrize(
     ("method", "path", "json_body"),
     [
@@ -400,6 +586,11 @@ def test_lineup_rejects_suspended_player_after_red_card(
                 "position": "forward",
                 "number": 9,
             },
+        ),
+        (
+            "POST",
+            "/api/v1/matches/1/lineups/generate",
+            {"team_id": 1, "lineup_size": 11},
         ),
         ("GET", "/api/v1/lineups/1", None),
         ("PATCH", "/api/v1/lineups/1", {"number": 10}),

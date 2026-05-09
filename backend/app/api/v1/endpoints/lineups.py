@@ -11,6 +11,7 @@ from app.repositories.player import PlayerRepository
 from app.repositories.team import TeamRepository
 from app.schemas.match_lineup import (
     MatchLineupCreate,
+    MatchLineupGenerate,
     MatchLineupRead,
     MatchLineupUpdate,
 )
@@ -60,6 +61,24 @@ def add_player_to_lineup(
 ) -> MatchLineupRead:
     try:
         return get_lineup_service(db).add_player_to_lineup(match_id, payload)
+    except (BusinessRuleError, ConflictError, NotFoundError) as exc:
+        raise app_error_to_http_exception(exc) from exc
+
+
+@router.post(
+    "/matches/{match_id}/lineups/generate",
+    response_model=list[MatchLineupRead],
+    status_code=status_codes.HTTP_CREATED,
+    responses=status_codes.CRUD_ERROR_RESPONSES,
+)
+def generate_lineup(
+    match_id: int,
+    payload: MatchLineupGenerate,
+    db: DbSession,
+    _current_user: CurrentUser,
+) -> list[MatchLineupRead]:
+    try:
+        return get_lineup_service(db).generate_lineup(match_id, payload)
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 

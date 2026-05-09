@@ -13,7 +13,18 @@ from app.repositories.match_event import MatchEventRepository
 from app.repositories.match_lineup import MatchLineupRepository
 from app.repositories.player import PlayerRepository
 from app.repositories.team import TeamRepository
-from app.schemas.match_lineup import MatchLineupCreate, MatchLineupUpdate
+from app.schemas.match_lineup import (
+    MatchLineupCreate,
+    MatchLineupGenerate,
+    MatchLineupUpdate,
+)
+
+POSITION_ORDER = {
+    "goalkeeper": 0,
+    "defender": 1,
+    "midfielder": 2,
+    "forward": 3,
+}
 
 
 class LineupService:
@@ -73,6 +84,68 @@ class LineupService:
                 "Could not add player to match lineup because of a conflict."
             ) from exc
         return lineup
+
+    def generate_lineup(
+        self,
+        match_id: int,
+        payload: MatchLineupGenerate,
+    ) -> list[MatchLineup]:
+        match = self._get_match(match_id)
+        self._ensure_team_exists(payload.team_id)
+        self._ensure_team_participates(match=match, team_id=payload.team_id)
+        self._ensure_preferred_player_ids_are_unique(payload.preferred_player_ids)
+
+        existing_lineups = self.lineups.list_by_match_and_team(
+            match_id=match_id,
+            team_id=payload.team_id,
+        )
+        if existing_lineups and not payload.replace_existing:
+            raise ConflictError("This team already has a lineup for this match.")
+
+        team_players = self.players.list_by_team(payload.team_id)
+        if not team_players:
+            raise BusinessRuleError("Team has no players for lineup generation.")
+
+        selected_players = self._select_players_for_generated_lineup(
+            match=match,
+            team_id=payload.team_id,
+            team_players=team_players,
+            preferred_player_ids=payload.preferred_player_ids,
+            lineup_size=payload.lineup_size,
+        )
+        if len(selected_players) < payload.lineup_size:
+            raise ConflictError("Not enough eligible players for lineup generation.")
+
+        generated_lineups: list[MatchLineup] = []
+        try:
+            if payload.replace_existing:
+                for lineup in existing_lineups:
+                    self.lineups.delete(lineup)
+            starting_size = (
+                payload.starting_size
+                if payload.starting_size is not None
+                else min(11, payload.lineup_size)
+            )
+            for index, player in enumerate(selected_players):
+                lineup = MatchLineup(
+                    match_id=match_id,
+                    team_id=payload.team_id,
+                    player_id=player.id,
+                    is_starting=index < starting_size,
+                    position=player.position.value,
+                    number=player.number,
+                )
+                self.lineups.add(lineup)
+                generated_lineups.append(lineup)
+            self.lineups.db.commit()
+            for lineup in generated_lineups:
+                self.lineups.db.refresh(lineup)
+        except IntegrityError as exc:
+            self.lineups.db.rollback()
+            raise ConflictError(
+                "Could not generate lineup because of a conflict."
+            ) from exc
+        return generated_lineups
 
     def update_lineup(
         self,
@@ -170,6 +243,10 @@ class LineupService:
             raise ConflictError("This team already has this number in the lineup.")
 
     def _ensure_player_is_available(self, *, player: Player, match: Match) -> None:
+        if not self._is_player_available(player=player, match=match):
+            raise ConflictError("Player is suspended for this match.")
+
+    def _is_player_available(self, *, player: Player, match: Match) -> bool:
         red_event = self._latest_player_event_before_match(
             player_id=player.id,
             season_id=match.season_id,
@@ -181,7 +258,7 @@ class LineupService:
             event=red_event,
             target_match=match,
         ):
-            raise ConflictError("Player is suspended for this match.")
+            return False
 
         yellow_events = self.events.list_player_events_before_match(
             player_id=player.id,
@@ -196,7 +273,55 @@ class LineupService:
                 event=threshold_event,
                 target_match=match,
             ):
-                raise ConflictError("Player is suspended for this match.")
+                return False
+        return True
+
+    def _ensure_preferred_player_ids_are_unique(
+        self,
+        preferred_player_ids: list[int],
+    ) -> None:
+        if len(set(preferred_player_ids)) != len(preferred_player_ids):
+            raise BusinessRuleError("Preferred player ids must be unique.")
+
+    def _select_players_for_generated_lineup(
+        self,
+        *,
+        match: Match,
+        team_id: int,
+        team_players: list[Player],
+        preferred_player_ids: list[int],
+        lineup_size: int,
+    ) -> list[Player]:
+        selected_players: list[Player] = []
+        selected_player_ids: set[int] = set()
+
+        for player_id in preferred_player_ids:
+            player = self._get_player(player_id)
+            self._ensure_player_belongs_to_team(player=player, team_id=team_id)
+            if self._is_player_available(player=player, match=match):
+                selected_players.append(player)
+                selected_player_ids.add(player.id)
+
+        for player in self._sort_lineup_candidates(team_players):
+            if len(selected_players) >= lineup_size:
+                break
+            if player.id in selected_player_ids:
+                continue
+            if not self._is_player_available(player=player, match=match):
+                continue
+            selected_players.append(player)
+            selected_player_ids.add(player.id)
+        return selected_players[:lineup_size]
+
+    def _sort_lineup_candidates(self, players: list[Player]) -> list[Player]:
+        return sorted(
+            players,
+            key=lambda player: (
+                POSITION_ORDER.get(player.position.value, len(POSITION_ORDER)),
+                player.number,
+                player.id,
+            ),
+        )
 
     def _latest_player_event_before_match(
         self,

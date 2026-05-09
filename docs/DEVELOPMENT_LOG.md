@@ -2,6 +2,23 @@
 
 ## 2026-05-09
 
+### Automatic Lineup Generation
+
+- Added authenticated lineup generation endpoint through
+  `/matches/{match_id}/lineups/generate`.
+- Extended `LineupService` to generate a lineup for one match participant team,
+  honor preferred players, skip suspended preferred players, fill open slots
+  with eligible teammates, and optionally replace an existing team lineup.
+- Added lineup tests for successful generation, replacement of a suspended
+  preferred player, existing-lineup conflicts, explicit replacement, wrong-team
+  preferred players, not enough eligible players, and JWT requirements.
+- Changed files: `backend/app/api/v1/endpoints/lineups.py`,
+  `backend/app/services/lineup_service.py`,
+  `backend/app/repositories/match_lineup.py`,
+  `backend/app/schemas/match_lineup.py`, and `backend/tests/test_lineups.py`.
+- Next steps: add automatic standings/statistics recalculation after match
+  finish or polish schedule filters/CI/demo data.
+
 ### Random Result Generation
 
 - Added authenticated random result endpoint through

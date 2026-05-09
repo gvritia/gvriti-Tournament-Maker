@@ -39,9 +39,13 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - `TicketPriceService` calculates the default match ticket price once at match
   creation. The current formula uses a base price of `20.00`, stadium capacity
   factors, and the highest club coefficient among the two teams.
-- `LineupService` owns match lineup editing and validates match participation,
-  player-team membership, duplicate players, duplicate lineup numbers, and basic
-  red-card/five-yellow-card suspension rules.
+- `LineupService` owns match lineup editing and automatic lineup generation. It
+  validates match participation, player-team membership, duplicate players,
+  duplicate lineup numbers, and basic red-card/five-yellow-card suspension
+  rules.
+- Automatic lineup generation can prioritize preferred players, skip suspended
+  preferred players, fill open slots with eligible teammates, and optionally
+  replace an existing team lineup.
 - `MatchProtocolService` owns match event recording and match finishing. It
   validates participant teams, player-team membership, optional assist players,
   mutable match status, and final score consistency with goal events.
@@ -65,18 +69,14 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   and season/stadium schedule reads.
 - `TicketPriceService`: default ticket pricing.
 - `ValidationService`: referee availability checks.
-- `LineupService`: match lineup listing, creation, update, deletion, and
-  suspension validation.
+- `LineupService`: match lineup listing, creation, update, deletion, automatic
+  lineup generation, and suspension validation.
 - `MatchProtocolService`: event listing, creation, update, deletion, and
   finishing matches.
 - `RandomResultService`: bounded random score and protocol event generation.
 - `StandingsService`: championship table recalculation and season standings
   reads.
 - `StatisticsService`: player season statistics recalculation and leaderboards.
-
-## Planned Domain Services
-
-- `LineupService`: automatic replacement selection for suspended players.
 
 ## Agreed Business Rules For Upcoming Work
 
@@ -90,5 +90,3 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   - middle third: `1.5`
   - bottom third: `1.1`
 - Five yellow cards or one red card suspend a player for the next match.
-- Automatic lineup generation should replace suspended players with eligible
-  players from the same team.

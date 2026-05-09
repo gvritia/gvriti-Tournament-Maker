@@ -66,6 +66,11 @@ checks must include both championship and cup matches.
 - Match lineups can include only players from one of the match participant
   teams, and a player cannot be added to the same match lineup twice.
 - A team lineup for one match cannot contain duplicate shirt numbers.
+- Automatic lineup generation creates a lineup for one match participant team,
+  can prioritize preferred players, skips suspended preferred players, and fills
+  open slots with eligible teammates where possible.
+- Automatic lineup generation does not overwrite an existing team lineup unless
+  the organizer explicitly asks to replace it.
 - Match protocol events can be recorded only for match participant teams and
   their players.
 - A match can be finished only when the submitted final score matches recorded
@@ -152,6 +157,7 @@ championship matches and return season or stadium match schedules. Cup endpoints
 can generate semifinals for four selected teams, generate the final from
 finished semifinal winners, and return a bracket view. Random result generation
 can create bounded protocol events and finish scheduled matches automatically.
+Lineup endpoints can also generate an eligible match lineup automatically.
 
 ## API Conventions
 

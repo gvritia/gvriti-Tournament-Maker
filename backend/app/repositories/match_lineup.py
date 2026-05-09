@@ -13,6 +13,18 @@ class MatchLineupRepository(BaseRepository[MatchLineup]):
         statement = select(MatchLineup).where(MatchLineup.match_id == match_id)
         return list(self.db.scalars(statement).all())
 
+    def list_by_match_and_team(
+        self,
+        *,
+        match_id: int,
+        team_id: int,
+    ) -> list[MatchLineup]:
+        statement = select(MatchLineup).where(
+            MatchLineup.match_id == match_id,
+            MatchLineup.team_id == team_id,
+        )
+        return list(self.db.scalars(statement).all())
+
     def get_by_match_and_player(
         self,
         *,
