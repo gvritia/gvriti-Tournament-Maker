@@ -112,3 +112,22 @@ cd backend
 alembic revision --autogenerate -m "initial schema"
 alembic upgrade head
 ```
+
+Seed demo data from parsed LaLiga CSV files:
+
+```powershell
+cd backend
+python -m app.scripts.seed_demo_data `
+  --clubs-csv "C:\Users\user\PycharmProjects\parsing_footbal_clubs\laliga_clubs.csv" `
+  --squads-csv "C:\Users\user\PycharmProjects\parsing_footbal_clubs\laliga_squads.csv"
+```
+
+Optionally add a full championship schedule:
+
+```powershell
+cd backend
+python -m app.scripts.seed_demo_data `
+  --clubs-csv "C:\Users\user\PycharmProjects\parsing_footbal_clubs\laliga_clubs.csv" `
+  --squads-csv "C:\Users\user\PycharmProjects\parsing_footbal_clubs\laliga_squads.csv" `
+  --generate-championship-schedule
+```

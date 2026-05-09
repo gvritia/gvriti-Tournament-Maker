@@ -35,6 +35,8 @@ checks must include both championship and cup matches.
 - `MatchEvent`: match protocol event such as goal, assist, save, yellow card, or
   red card.
 - `PlayerSeasonStats`: recalculated player totals by season.
+- Demo seed data can be imported from parsed LaLiga CSV files for clubs and
+  squads.
 
 ## Business Constraints
 
@@ -141,6 +143,7 @@ checks must include both championship and cup matches.
 - Match schedule and stadium schedule views, including season schedule filters
   by team, tournament, and date range.
 - Cup bracket view.
+- Demo data seeding from parsed club and squad CSV files.
 
 ## Not In MVP
 
@@ -173,6 +176,10 @@ also generate an eligible match lineup automatically.
 Finishing a match through either protocol submission or random result generation
 automatically refreshes player statistics for the season and refreshes
 championship standings when the match belongs to the championship.
+The backend also includes a demo seed command that imports parsed LaLiga club
+and squad CSV files, creates a demo season, championship, cup, teams, stadiums,
+players, referees, and cup semifinal fixtures, with an optional full
+championship schedule.
 
 ## API Conventions
 

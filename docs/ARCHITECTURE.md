@@ -7,6 +7,7 @@
 - `services`: business rules and transaction orchestration.
 - `repositories`: database queries and persistence through SQLAlchemy sessions.
 - `models`: SQLAlchemy ORM tables and relationships.
+- `scripts`: backend utility commands, including demo data import.
 
 Endpoints should stay thin. They validate HTTP inputs, call services, and map
 domain exceptions to HTTP status codes. Business rules belong in services.
@@ -69,6 +70,9 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - GitHub Actions runs backend CI on pushes to `master`/`main` and pull requests:
   tests, `ruff check .`, `black --check .`, and Alembic migration drift checks
   against PostgreSQL.
+- `app.scripts.seed_demo_data` imports parsed LaLiga CSV files and creates demo
+  season data through ORM sessions. The command is idempotent for its own seeded
+  season, teams, stadiums, players, referees, and cup semifinal fixtures.
 
 ## Implemented Domain Services
 
@@ -89,6 +93,8 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - `StandingsService`: championship table recalculation and season standings
   reads.
 - `StatisticsService`: player season statistics recalculation and leaderboards.
+- `seed_demo_data`: utility script for importing club and squad CSV data into a
+  runnable demo dataset.
 
 ## Agreed Business Rules For Upcoming Work
 

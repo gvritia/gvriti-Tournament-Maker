@@ -61,15 +61,31 @@ Expected response:
 {"status": "ok", "service": "Tournament Maker Backend"}
 ```
 
-## Alembic
+## Demo Data
 
-The Alembic environment is configured, but the first migration is not generated
-yet. After model changes are ready to persist:
+After PostgreSQL is running and migrations are applied, seed the demo LaLiga
+dataset from the parsed CSV files:
 
 ```powershell
 cd backend
-alembic revision --autogenerate -m "initial schema"
+python -m app.scripts.seed_demo_data `
+  --clubs-csv "C:\Users\user\PycharmProjects\parsing_footbal_clubs\laliga_clubs.csv" `
+  --squads-csv "C:\Users\user\PycharmProjects\parsing_footbal_clubs\laliga_squads.csv"
+```
+
+The seed command creates a demo season, championship and cup tournaments, teams,
+home stadiums, players, referees, and cup semifinal fixtures. It can be run
+again safely for the same dataset. Add `--generate-championship-schedule` to
+also create a full double round-robin championship schedule.
+
+## Alembic
+
+Apply migrations and check for schema drift:
+
+```powershell
+cd backend
 alembic upgrade head
+alembic check
 ```
 
 ## Tests and Formatting

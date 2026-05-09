@@ -2,6 +2,24 @@
 
 ## 2026-05-09
 
+### Demo Data Seeding
+
+- Added `python -m app.scripts.seed_demo_data` to import parsed LaLiga club and
+  squad CSV files into the backend database.
+- The seed command creates a demo season, championship and cup tournaments,
+  teams, home stadiums, players, referees, and cup semifinal fixtures.
+- Added deterministic player number conflict handling for CSV rows where one
+  team has duplicate shirt numbers.
+- Added optional `--generate-championship-schedule` support for a full double
+  round-robin demo calendar.
+- Added tests for CSV parsing, idempotent seeding, duplicate player number
+  handling, and cup semifinal generation from seeded previous-season places.
+- Changed files: `backend/app/scripts/seed_demo_data.py`,
+  `backend/app/scripts/__init__.py`, `backend/tests/test_seed_demo_data.py`,
+  `backend/README.md`, `AGENTS.md`, `docs/PROJECT_CONTEXT.md`,
+  `docs/ARCHITECTURE.md`, and `docs/DEVELOPMENT_LOG.md`.
+- Next steps: add README/API flow for a full defense walkthrough.
+
 ### Schedule Filters, Cup Auto-Selection, And CI
 
 - Added season schedule filters to
