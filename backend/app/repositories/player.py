@@ -13,3 +13,7 @@ class PlayerRepository(BaseRepository[Player]):
         return self.db.scalar(
             select(Player).where(Player.team_id == team_id, Player.number == number)
         )
+
+    def list_by_team(self, team_id: int) -> list[Player]:
+        statement = select(Player).where(Player.team_id == team_id).order_by(Player.id)
+        return list(self.db.scalars(statement).all())

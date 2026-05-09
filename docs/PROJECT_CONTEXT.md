@@ -81,6 +81,15 @@ checks must include both championship and cup matches.
   teammates where possible.
 - Random match result generation must use realistic limits so scores and cards
   stay plausible.
+- Random match result generation creates goal, save, yellow-card, and red-card
+  protocol events, then marks the match as finished with a matching final score.
+- Random match result generation requires both teams to have players, does not
+  overwrite existing protocol events, and cannot run for finished or cancelled
+  matches.
+- Randomly generated scores are capped at five goals per team. Generated cards
+  are capped at five yellow cards and one red card per team, and saves are
+  capped at ten per team.
+- Randomly generated cup semifinal/final results must have a clear winner.
 - The cup consists of semifinals and a final.
 - The cup uses the first four teams from the previous season. If there is no
   previous season, the organizer selects teams manually.
@@ -141,7 +150,8 @@ recalculate season totals and return leaderboards for goals, assists, saves,
 yellow cards, and red cards. Schedule endpoints can generate double round-robin
 championship matches and return season or stadium match schedules. Cup endpoints
 can generate semifinals for four selected teams, generate the final from
-finished semifinal winners, and return a bracket view.
+finished semifinal winners, and return a bracket view. Random result generation
+can create bounded protocol events and finish scheduled matches automatically.
 
 ## API Conventions
 

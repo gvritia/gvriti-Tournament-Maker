@@ -1,5 +1,29 @@
 # Development Log
 
+## 2026-05-09
+
+### Random Result Generation
+
+- Added authenticated random result endpoint through
+  `/matches/{match_id}/generate-random-result`.
+- Implemented `RandomResultService` to generate bounded scores, goals, assists
+  through `assist_player_id`, saves, yellow cards, and red cards, then finish
+  the match in one transaction.
+- Added safeguards so random generation requires players for both teams,
+  refuses finished/cancelled matches, refuses matches with existing protocol
+  events, and avoids drawn generated results for cup semifinals/finals.
+- Added random result tests for successful generation, protocol consistency,
+  caps, missing players, existing protocol conflicts, finished-match rejection,
+  missing matches, cup no-draw behavior, and JWT requirements.
+- Changed files: `backend/app/api/v1/endpoints/random_results.py`,
+  `backend/app/api/v1/router.py`,
+  `backend/app/services/random_result_service.py`,
+  `backend/app/repositories/player.py`,
+  `backend/app/schemas/random_result.py`, and
+  `backend/tests/test_random_results.py`.
+- Next steps: implement automatic lineup generation/replacement for suspended
+  players or automatic standings/statistics recalculation after finish.
+
 ## 2026-05-08
 
 ### Backend Skeleton
