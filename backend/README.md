@@ -39,6 +39,15 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
+Or run PostgreSQL and the backend together from the repository root:
+
+```powershell
+docker compose up --build backend
+```
+
+The backend container listens on `http://127.0.0.1:8000` and runs
+`alembic upgrade head` before starting Uvicorn.
+
 If you use an already existing virtual environment, install dependencies into
 that active environment first:
 
@@ -87,7 +96,8 @@ The demo user can be changed with `--owner-email`, `--owner-nickname`, and
 ## API Defense Flow
 
 1. Start PostgreSQL, install dependencies, run `alembic upgrade head`, and start
-   `uvicorn app.main:app --reload`.
+   `uvicorn app.main:app --reload`. Alternatively, run
+   `docker compose up --build backend`.
 2. Seed demo data with `python -m app.scripts.seed_demo_data ...`.
 3. Log in and save the JWT token:
 
@@ -110,9 +120,49 @@ Invoke-RestMethod http://127.0.0.1:8000/api/v1/teams/ -Headers $headers
 Invoke-RestMethod http://127.0.0.1:8000/api/v1/matches/ -Headers $headers
 ```
 
-5. Create a second user and repeat the same list calls with the second user's
-   token. The second user receives only their own empty or newly created data,
-   and direct requests for the demo user's entity IDs return `404 Not Found`.
+5. Demonstrate a generated result and derived tables. Replace `$matchId` and
+   `$seasonId` with IDs returned by the previous calls:
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8000/api/v1/matches/$matchId/generate-random-result" `
+  -Headers $headers `
+  -ContentType "application/json" `
+  -Body '{"seed":42}'
+
+Invoke-RestMethod `
+  "http://127.0.0.1:8000/api/v1/standings/seasons/$seasonId" `
+  -Headers $headers
+
+Invoke-RestMethod `
+  "http://127.0.0.1:8000/api/v1/statistics/seasons/$seasonId/leaders/goals" `
+  -Headers $headers
+```
+
+6. Create a second user and demonstrate isolation:
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/api/v1/auth/register `
+  -ContentType "application/json" `
+  -Body '{"nickname":"second-demo","email":"second-demo@example.com","password":"StrongPass123"}'
+
+$secondToken = (Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/api/v1/auth/login `
+  -ContentType "application/json" `
+  -Body '{"email":"second-demo@example.com","password":"StrongPass123"}').access_token
+
+$secondHeaders = @{ Authorization = "Bearer $secondToken" }
+
+Invoke-RestMethod http://127.0.0.1:8000/api/v1/seasons/ -Headers $secondHeaders
+Invoke-RestMethod "http://127.0.0.1:8000/api/v1/seasons/$seasonId" -Headers $secondHeaders
+```
+
+The second user's list contains only their own data, and direct requests for the
+demo user's IDs return `404 Not Found`.
 
 ## Alembic
 

@@ -2,6 +2,30 @@
 
 ## 2026-05-10
 
+### Final Backend Polish
+
+- Added a Docker backend service and `backend/Dockerfile` so PostgreSQL and the
+  API can run together with `docker compose up --build backend`.
+- Added local frontend CORS support through `CORS_ORIGINS` and OpenAPI tag
+  descriptions for the implemented API areas.
+- Added database-level owner-scoped uniqueness for stadium names, referee names,
+  and tournament names inside one owner season.
+- Expanded `backend/README.md` with a defense-ready API flow covering login,
+  protected reads, random results, standings, statistics, and cross-user
+  isolation.
+- Verified the real PostgreSQL demo flow with LaLiga CSV seeding, compose
+  backend startup, demo login, protected reads, cup bracket, random result,
+  standings/statistics refresh, and second-user `404` isolation.
+- Changed files: `docker-compose.yml`, `backend/Dockerfile`,
+  `backend/.dockerignore`, `backend/app/core/config.py`, `backend/app/main.py`,
+  `backend/app/models/referee.py`, `backend/app/models/stadium.py`,
+  `backend/app/models/tournament.py`,
+  `backend/alembic/versions/4f2a7b91c8e3_add_owner_unique_constraints.py`,
+  `backend/tests/test_health.py`, `backend/README.md`, `AGENTS.md`,
+  `docs/PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and
+  `docs/DEVELOPMENT_LOG.md`.
+- Next steps: start frontend development against the stable authenticated API.
+
 ### User-Scoped Data Isolation
 
 - Added `owner_id` ownership to all subject-area tables: seasons, teams,

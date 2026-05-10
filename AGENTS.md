@@ -21,7 +21,7 @@ events, standings, ticket prices, schedules, and player statistics.
 - pydantic-settings
 - pytest + httpx
 - ruff + black
-- Docker Compose for PostgreSQL
+- Docker Compose for PostgreSQL and optional backend service
 
 ## Frontend Restriction
 
@@ -85,6 +85,12 @@ Start PostgreSQL from the repository root:
 
 ```powershell
 docker compose up -d db
+```
+
+Run PostgreSQL and backend together from the repository root:
+
+```powershell
+docker compose up --build backend
 ```
 
 Run the backend:

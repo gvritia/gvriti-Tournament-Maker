@@ -25,13 +25,18 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   another organizer's seasons, teams, players, stadiums, referees, tournaments,
   matches, lineups, events, or derived stats.
 - Missing or foreign owned entities are reported as not found at the API layer.
-- Season and team names are unique within one owner scope.
+- Season, team, stadium, and referee names are unique within one owner scope.
+  Tournament names are unique within one owner season.
 - Database writes are committed in services after repository operations.
 - Domain errors use app-level exceptions:
   - `NotFoundError` -> `404`
   - `ConflictError` -> `409`
   - `BusinessRuleError` -> `400`
 - PostgreSQL is exposed on host port `55432` to avoid local PostgreSQL conflicts.
+- Docker Compose can run PostgreSQL alone or build and run the backend service
+  with `alembic upgrade head` executed at container startup.
+- CORS is configured from `CORS_ORIGINS`; local frontend dev servers on ports
+  `3000` and `5173` are allowed by default.
 - Alembic is the only supported way to change the database schema.
 - `MatchService` owns match creation, updates, deletion, rescheduling, referee
   assignment, and manual ticket price changes.

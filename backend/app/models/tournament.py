@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constants import TournamentStatus, TournamentType
@@ -16,6 +16,14 @@ if TYPE_CHECKING:
 
 class Tournament(Base):
     __tablename__ = "tournaments"
+    __table_args__ = (
+        UniqueConstraint(
+            "owner_id",
+            "season_id",
+            "name",
+            name="uq_tournament_owner_season_name",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     owner_id: Mapped[int] = mapped_column(

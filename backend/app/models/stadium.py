@@ -3,7 +3,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -15,7 +23,10 @@ if TYPE_CHECKING:
 
 class Stadium(Base):
     __tablename__ = "stadiums"
-    __table_args__ = (CheckConstraint("capacity > 0", name="ck_stadium_capacity"),)
+    __table_args__ = (
+        CheckConstraint("capacity > 0", name="ck_stadium_capacity"),
+        UniqueConstraint("owner_id", "name", name="uq_stadium_owner_name"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     owner_id: Mapped[int] = mapped_column(

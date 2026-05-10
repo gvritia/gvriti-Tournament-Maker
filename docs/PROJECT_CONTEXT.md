@@ -53,7 +53,9 @@ current authenticated user.
   behavior instead of exposing the entity.
 - Creating linked entities validates all referenced IDs inside the current
   user's data scope.
-- Season names and team names are unique per user, not globally.
+- Season names and team names are unique per user, not globally. Stadium names
+  and referee names are also unique per user, and tournament names are unique
+  inside one user's season.
 - A team cannot play more than one match per day.
 - A team cannot play more than two matches per week.
 - A week is counted from Monday through Sunday.
@@ -172,7 +174,8 @@ current authenticated user.
 
 The current backend includes FastAPI setup, settings, database connection,
 SQLAlchemy models, Pydantic schemas, Alembic configuration, PostgreSQL Docker
-Compose setup, JWT auth, initial schema migration, CRUD for seasons, teams,
+Compose setup with optional backend service, JWT auth, initial schema migration,
+CRUD for seasons, teams,
 players, stadiums, referees, tournaments, matches, and match lineups, plus match
 calendar validation, referee assignment validation, ticket price
 calculation/manual override, and suspension checks when adding players to
@@ -198,6 +201,8 @@ The backend also includes a demo seed command that imports parsed LaLiga club
 and squad CSV files, creates or reuses a demo organizer account, and attaches
 the demo season, championship, cup, teams, stadiums, players, referees, and cup
 semifinal fixtures to that user, with an optional full championship schedule.
+Local frontend origins on ports `3000` and `5173` are allowed through CORS for
+the next development stage.
 
 ## API Conventions
 

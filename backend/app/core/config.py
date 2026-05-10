@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     environment: str = "local"
     debug: bool = False
     api_v1_prefix: str = "/api/v1"
+    cors_origins: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "http://localhost:5173,http://127.0.0.1:5173"
+    )
 
     secret_key: str = Field(default="change-me-in-production")
     algorithm: str = "HS256"
@@ -38,6 +42,14 @@ class Settings(BaseSettings):
         ):
             raise ValueError("SECRET_KEY must be changed outside local environments.")
         return self
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        if not self.cors_origins.strip():
+            return []
+        return [
+            origin.strip() for origin in self.cors_origins.split(",") if origin.strip()
+        ]
 
 
 @lru_cache
