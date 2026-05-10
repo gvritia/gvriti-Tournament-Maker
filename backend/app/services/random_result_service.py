@@ -308,6 +308,7 @@ class RandomResultService:
         assist_player_id: int | None = None,
     ) -> MatchEvent:
         return MatchEvent(
+            owner_id=self.events.require_owner_id(),
             match_id=match.id,
             team_id=team_id,
             player_id=player_id,

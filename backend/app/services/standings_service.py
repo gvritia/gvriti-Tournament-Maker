@@ -81,6 +81,7 @@ class StandingsService:
         for place, accumulator in enumerate(ordered_accumulators, start=1):
             self.team_stats.add(
                 TeamSeasonStats(
+                    owner_id=self.team_stats.require_owner_id(),
                     team_id=accumulator.team_id,
                     season_id=accumulator.season_id,
                     played=accumulator.played,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -19,9 +19,14 @@ if TYPE_CHECKING:
 
 class Team(Base):
     __tablename__ = "teams"
+    __table_args__ = (UniqueConstraint("owner_id", "name", name="uq_team_owner_name"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(160), unique=True, index=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(160), index=True)
     city: Mapped[str] = mapped_column(String(120))
     address: Mapped[str | None] = mapped_column(String(255), nullable=True)
     manager_name: Mapped[str | None] = mapped_column(String(160), nullable=True)

@@ -12,8 +12,11 @@ from app.services.tournament_service import TournamentService
 router = APIRouter()
 
 
-def get_tournament_service(db: DbSession) -> TournamentService:
-    return TournamentService(TournamentRepository(db), SeasonRepository(db))
+def get_tournament_service(db: DbSession, owner_id: int) -> TournamentService:
+    return TournamentService(
+        TournamentRepository(db, owner_id),
+        SeasonRepository(db, owner_id),
+    )
 
 
 @router.get(
@@ -24,11 +27,14 @@ def get_tournament_service(db: DbSession) -> TournamentService:
 )
 def list_tournaments(
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=100),
 ) -> list[TournamentRead]:
-    return get_tournament_service(db).list_tournaments(offset=offset, limit=limit)
+    return get_tournament_service(db, current_user.id).list_tournaments(
+        offset=offset,
+        limit=limit,
+    )
 
 
 @router.post(
@@ -40,10 +46,10 @@ def list_tournaments(
 def create_tournament(
     payload: TournamentCreate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> TournamentRead:
     try:
-        return get_tournament_service(db).create_tournament(payload)
+        return get_tournament_service(db, current_user.id).create_tournament(payload)
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -57,10 +63,10 @@ def create_tournament(
 def get_tournament(
     tournament_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> TournamentRead:
     try:
-        return get_tournament_service(db).get_tournament(tournament_id)
+        return get_tournament_service(db, current_user.id).get_tournament(tournament_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -75,10 +81,13 @@ def update_tournament(
     tournament_id: int,
     payload: TournamentUpdate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> TournamentRead:
     try:
-        return get_tournament_service(db).update_tournament(tournament_id, payload)
+        return get_tournament_service(db, current_user.id).update_tournament(
+            tournament_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -91,9 +100,9 @@ def update_tournament(
 def delete_tournament(
     tournament_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> None:
     try:
-        get_tournament_service(db).delete_tournament(tournament_id)
+        get_tournament_service(db, current_user.id).delete_tournament(tournament_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc

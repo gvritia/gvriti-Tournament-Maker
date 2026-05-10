@@ -20,22 +20,22 @@ from app.services.statistics_service import StatisticsService
 router = APIRouter()
 
 
-def get_random_result_service(db: DbSession) -> RandomResultService:
-    matches = MatchRepository(db)
-    events = MatchEventRepository(db)
+def get_random_result_service(db: DbSession, owner_id: int) -> RandomResultService:
+    matches = MatchRepository(db, owner_id)
+    events = MatchEventRepository(db, owner_id)
     return RandomResultService(
         matches=matches,
         events=events,
-        players=PlayerRepository(db),
+        players=PlayerRepository(db, owner_id),
         standings=StandingsService(
-            seasons=SeasonRepository(db),
+            seasons=SeasonRepository(db, owner_id),
             matches=matches,
-            team_stats=TeamSeasonStatsRepository(db),
+            team_stats=TeamSeasonStatsRepository(db, owner_id),
         ),
         statistics=StatisticsService(
-            seasons=SeasonRepository(db),
+            seasons=SeasonRepository(db, owner_id),
             events=events,
-            player_stats=PlayerSeasonStatsRepository(db),
+            player_stats=PlayerSeasonStatsRepository(db, owner_id),
         ),
     )
 
@@ -50,9 +50,12 @@ def generate_random_match_result(
     match_id: int,
     payload: RandomResultGenerate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> RandomResultRead:
     try:
-        return get_random_result_service(db).generate_for_match(match_id, payload)
+        return get_random_result_service(db, current_user.id).generate_for_match(
+            match_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc

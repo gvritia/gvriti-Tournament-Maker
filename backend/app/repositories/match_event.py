@@ -10,8 +10,8 @@ from app.repositories.base import BaseRepository
 
 
 class MatchEventRepository(BaseRepository[MatchEvent]):
-    def __init__(self, db: Session) -> None:
-        super().__init__(MatchEvent, db)
+    def __init__(self, db: Session, owner_id: int | None = None) -> None:
+        super().__init__(MatchEvent, db, owner_id)
 
     def list_by_match(self, match_id: int) -> list[MatchEvent]:
         statement = (
@@ -19,6 +19,7 @@ class MatchEventRepository(BaseRepository[MatchEvent]):
             .where(MatchEvent.match_id == match_id)
             .order_by(MatchEvent.minute, MatchEvent.id)
         )
+        statement = self._filter_owner(statement)
         return list(self.db.scalars(statement).all())
 
     def list_player_events_before_match(
@@ -40,6 +41,7 @@ class MatchEventRepository(BaseRepository[MatchEvent]):
             )
             .order_by(Match.match_datetime, MatchEvent.id)
         )
+        statement = self._filter_owner(statement)
         return list(self.db.scalars(statement).all())
 
     def count_match_goals_for_team(self, *, match_id: int, team_id: int) -> int:
@@ -48,6 +50,7 @@ class MatchEventRepository(BaseRepository[MatchEvent]):
             MatchEvent.team_id == team_id,
             MatchEvent.event_type == MatchEventType.GOAL,
         )
+        statement = self._filter_owner(statement)
         return len(self.db.scalars(statement).all())
 
     def list_finished_events_by_season(self, season_id: int) -> list[MatchEvent]:
@@ -60,4 +63,5 @@ class MatchEventRepository(BaseRepository[MatchEvent]):
             )
             .order_by(Match.match_datetime, MatchEvent.minute, MatchEvent.id)
         )
+        statement = self._filter_owner(statement)
         return list(self.db.scalars(statement).all())

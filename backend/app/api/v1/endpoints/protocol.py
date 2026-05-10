@@ -27,23 +27,23 @@ from app.services.statistics_service import StatisticsService
 router = APIRouter()
 
 
-def get_match_protocol_service(db: DbSession) -> MatchProtocolService:
-    matches = MatchRepository(db)
-    events = MatchEventRepository(db)
+def get_match_protocol_service(db: DbSession, owner_id: int) -> MatchProtocolService:
+    matches = MatchRepository(db, owner_id)
+    events = MatchEventRepository(db, owner_id)
     return MatchProtocolService(
         matches=matches,
         events=events,
-        players=PlayerRepository(db),
-        teams=TeamRepository(db),
+        players=PlayerRepository(db, owner_id),
+        teams=TeamRepository(db, owner_id),
         standings=StandingsService(
-            seasons=SeasonRepository(db),
+            seasons=SeasonRepository(db, owner_id),
             matches=matches,
-            team_stats=TeamSeasonStatsRepository(db),
+            team_stats=TeamSeasonStatsRepository(db, owner_id),
         ),
         statistics=StatisticsService(
-            seasons=SeasonRepository(db),
+            seasons=SeasonRepository(db, owner_id),
             events=events,
-            player_stats=PlayerSeasonStatsRepository(db),
+            player_stats=PlayerSeasonStatsRepository(db, owner_id),
         ),
     )
 
@@ -57,10 +57,12 @@ def get_match_protocol_service(db: DbSession) -> MatchProtocolService:
 def list_match_events(
     match_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> list[MatchEventRead]:
     try:
-        return get_match_protocol_service(db).list_match_events(match_id)
+        return get_match_protocol_service(db, current_user.id).list_match_events(
+            match_id
+        )
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -75,10 +77,13 @@ def add_match_event(
     match_id: int,
     payload: MatchEventCreate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchEventRead:
     try:
-        return get_match_protocol_service(db).add_event(match_id, payload)
+        return get_match_protocol_service(db, current_user.id).add_event(
+            match_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -92,10 +97,10 @@ def add_match_event(
 def get_match_event(
     event_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchEventRead:
     try:
-        return get_match_protocol_service(db).get_event(event_id)
+        return get_match_protocol_service(db, current_user.id).get_event(event_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -110,10 +115,13 @@ def update_match_event(
     event_id: int,
     payload: MatchEventUpdate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchEventRead:
     try:
-        return get_match_protocol_service(db).update_event(event_id, payload)
+        return get_match_protocol_service(db, current_user.id).update_event(
+            event_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -126,10 +134,10 @@ def update_match_event(
 def delete_match_event(
     event_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> None:
     try:
-        get_match_protocol_service(db).delete_event(event_id)
+        get_match_protocol_service(db, current_user.id).delete_event(event_id)
     except (BusinessRuleError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -144,9 +152,12 @@ def finish_match(
     match_id: int,
     payload: MatchFinish,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchRead:
     try:
-        return get_match_protocol_service(db).finish_match(match_id, payload)
+        return get_match_protocol_service(db, current_user.id).finish_match(
+            match_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc

@@ -23,7 +23,10 @@ class SeasonService:
         if self.seasons.get_by_name(payload.name) is not None:
             raise ConflictError("A season with this name already exists.")
 
-        season = Season(**payload.model_dump())
+        season = Season(
+            owner_id=self.seasons.require_owner_id(),
+            **payload.model_dump(),
+        )
         try:
             self.seasons.add(season)
             self.seasons.db.commit()

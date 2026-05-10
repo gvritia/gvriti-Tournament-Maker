@@ -28,7 +28,10 @@ class PlayerService:
             number=payload.number,
         )
 
-        player = Player(**payload.model_dump())
+        player = Player(
+            owner_id=self.players.require_owner_id(),
+            **payload.model_dump(),
+        )
         try:
             self.players.add(player)
             self.players.db.commit()

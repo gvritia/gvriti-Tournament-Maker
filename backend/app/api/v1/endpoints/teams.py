@@ -19,11 +19,14 @@ router = APIRouter()
 )
 def list_teams(
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=100),
 ) -> list[TeamRead]:
-    return TeamService(TeamRepository(db)).list_teams(offset=offset, limit=limit)
+    return TeamService(TeamRepository(db, current_user.id)).list_teams(
+        offset=offset,
+        limit=limit,
+    )
 
 
 @router.post(
@@ -35,10 +38,10 @@ def list_teams(
 def create_team(
     payload: TeamCreate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> TeamRead:
     try:
-        return TeamService(TeamRepository(db)).create_team(payload)
+        return TeamService(TeamRepository(db, current_user.id)).create_team(payload)
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -52,10 +55,10 @@ def create_team(
 def get_team(
     team_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> TeamRead:
     try:
-        return TeamService(TeamRepository(db)).get_team(team_id)
+        return TeamService(TeamRepository(db, current_user.id)).get_team(team_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -70,10 +73,13 @@ def update_team(
     team_id: int,
     payload: TeamUpdate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> TeamRead:
     try:
-        return TeamService(TeamRepository(db)).update_team(team_id, payload)
+        return TeamService(TeamRepository(db, current_user.id)).update_team(
+            team_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -86,9 +92,9 @@ def update_team(
 def delete_team(
     team_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> None:
     try:
-        TeamService(TeamRepository(db)).delete_team(team_id)
+        TeamService(TeamRepository(db, current_user.id)).delete_team(team_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc

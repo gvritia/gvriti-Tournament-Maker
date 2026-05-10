@@ -19,11 +19,14 @@ router = APIRouter()
 )
 def list_seasons(
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=100),
 ) -> list[SeasonRead]:
-    return SeasonService(SeasonRepository(db)).list_seasons(offset=offset, limit=limit)
+    return SeasonService(SeasonRepository(db, current_user.id)).list_seasons(
+        offset=offset,
+        limit=limit,
+    )
 
 
 @router.post(
@@ -35,10 +38,12 @@ def list_seasons(
 def create_season(
     payload: SeasonCreate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> SeasonRead:
     try:
-        return SeasonService(SeasonRepository(db)).create_season(payload)
+        return SeasonService(SeasonRepository(db, current_user.id)).create_season(
+            payload
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -52,10 +57,12 @@ def create_season(
 def get_season(
     season_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> SeasonRead:
     try:
-        return SeasonService(SeasonRepository(db)).get_season(season_id)
+        return SeasonService(SeasonRepository(db, current_user.id)).get_season(
+            season_id
+        )
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -70,10 +77,13 @@ def update_season(
     season_id: int,
     payload: SeasonUpdate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> SeasonRead:
     try:
-        return SeasonService(SeasonRepository(db)).update_season(season_id, payload)
+        return SeasonService(SeasonRepository(db, current_user.id)).update_season(
+            season_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -86,9 +96,9 @@ def update_season(
 def delete_season(
     season_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> None:
     try:
-        SeasonService(SeasonRepository(db)).delete_season(season_id)
+        SeasonService(SeasonRepository(db, current_user.id)).delete_season(season_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc

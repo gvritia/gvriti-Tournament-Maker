@@ -19,11 +19,11 @@ router = APIRouter()
 )
 def list_referees(
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=100),
 ) -> list[RefereeRead]:
-    return RefereeService(RefereeRepository(db)).list_referees(
+    return RefereeService(RefereeRepository(db, current_user.id)).list_referees(
         offset=offset,
         limit=limit,
     )
@@ -38,10 +38,12 @@ def list_referees(
 def create_referee(
     payload: RefereeCreate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> RefereeRead:
     try:
-        return RefereeService(RefereeRepository(db)).create_referee(payload)
+        return RefereeService(RefereeRepository(db, current_user.id)).create_referee(
+            payload
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -55,10 +57,12 @@ def create_referee(
 def get_referee(
     referee_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> RefereeRead:
     try:
-        return RefereeService(RefereeRepository(db)).get_referee(referee_id)
+        return RefereeService(RefereeRepository(db, current_user.id)).get_referee(
+            referee_id
+        )
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -73,10 +77,10 @@ def update_referee(
     referee_id: int,
     payload: RefereeUpdate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> RefereeRead:
     try:
-        return RefereeService(RefereeRepository(db)).update_referee(
+        return RefereeService(RefereeRepository(db, current_user.id)).update_referee(
             referee_id,
             payload,
         )
@@ -92,9 +96,11 @@ def update_referee(
 def delete_referee(
     referee_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> None:
     try:
-        RefereeService(RefereeRepository(db)).delete_referee(referee_id)
+        RefereeService(RefereeRepository(db, current_user.id)).delete_referee(
+            referee_id
+        )
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc

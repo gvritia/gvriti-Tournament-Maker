@@ -21,6 +21,10 @@ class Player(Base):
     __table_args__ = (UniqueConstraint("team_id", "number", name="uq_player_number"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
     full_name: Mapped[str] = mapped_column(String(160), index=True)
     age: Mapped[int | None] = mapped_column(Integer, nullable=True)
     position: Mapped[PlayerPosition] = mapped_column(enum_column(PlayerPosition))

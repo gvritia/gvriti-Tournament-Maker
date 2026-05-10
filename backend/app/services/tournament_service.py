@@ -37,7 +37,10 @@ class TournamentService:
             name=payload.name,
         )
 
-        tournament = Tournament(**payload.model_dump())
+        tournament = Tournament(
+            owner_id=self.tournaments.require_owner_id(),
+            **payload.model_dump(),
+        )
         try:
             self.tournaments.add(tournament)
             self.tournaments.db.commit()

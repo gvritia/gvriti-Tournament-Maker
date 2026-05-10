@@ -26,15 +26,15 @@ from app.services.validation_service import ValidationService
 router = APIRouter()
 
 
-def get_match_service(db: DbSession) -> MatchService:
-    matches = MatchRepository(db)
+def get_match_service(db: DbSession, owner_id: int) -> MatchService:
+    matches = MatchRepository(db, owner_id)
     return MatchService(
         matches=matches,
-        tournaments=TournamentRepository(db),
-        seasons=SeasonRepository(db),
-        teams=TeamRepository(db),
-        stadiums=StadiumRepository(db),
-        referees=RefereeRepository(db),
+        tournaments=TournamentRepository(db, owner_id),
+        seasons=SeasonRepository(db, owner_id),
+        teams=TeamRepository(db, owner_id),
+        stadiums=StadiumRepository(db, owner_id),
+        referees=RefereeRepository(db, owner_id),
         schedule=ScheduleService(matches),
         ticket_prices=TicketPriceService(),
         validation=ValidationService(matches),
@@ -49,11 +49,14 @@ def get_match_service(db: DbSession) -> MatchService:
 )
 def list_matches(
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=100),
 ) -> list[MatchRead]:
-    return get_match_service(db).list_matches(offset=offset, limit=limit)
+    return get_match_service(db, current_user.id).list_matches(
+        offset=offset,
+        limit=limit,
+    )
 
 
 @router.post(
@@ -65,10 +68,10 @@ def list_matches(
 def create_match(
     payload: MatchCreate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchRead:
     try:
-        return get_match_service(db).create_match(payload)
+        return get_match_service(db, current_user.id).create_match(payload)
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -82,10 +85,10 @@ def create_match(
 def get_match(
     match_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchRead:
     try:
-        return get_match_service(db).get_match(match_id)
+        return get_match_service(db, current_user.id).get_match(match_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -100,10 +103,10 @@ def update_match(
     match_id: int,
     payload: MatchUpdate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchRead:
     try:
-        return get_match_service(db).update_match(match_id, payload)
+        return get_match_service(db, current_user.id).update_match(match_id, payload)
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -116,10 +119,10 @@ def update_match(
 def delete_match(
     match_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> None:
     try:
-        get_match_service(db).delete_match(match_id)
+        get_match_service(db, current_user.id).delete_match(match_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -134,10 +137,13 @@ def assign_referee(
     match_id: int,
     payload: MatchRefereeAssign,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchRead:
     try:
-        return get_match_service(db).assign_referee(match_id, payload.referee_id)
+        return get_match_service(db, current_user.id).assign_referee(
+            match_id,
+            payload.referee_id,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -152,10 +158,10 @@ def reschedule_match(
     match_id: int,
     payload: MatchReschedule,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchRead:
     try:
-        return get_match_service(db).reschedule_match(
+        return get_match_service(db, current_user.id).reschedule_match(
             match_id,
             payload.match_datetime,
         )
@@ -173,10 +179,10 @@ def set_manual_ticket_price(
     match_id: int,
     payload: MatchTicketPriceUpdate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchRead:
     try:
-        return get_match_service(db).set_manual_ticket_price(
+        return get_match_service(db, current_user.id).set_manual_ticket_price(
             match_id,
             payload.ticket_price,
         )

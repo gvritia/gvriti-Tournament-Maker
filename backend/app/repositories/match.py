@@ -10,8 +10,8 @@ from app.repositories.base import BaseRepository
 
 
 class MatchRepository(BaseRepository[Match]):
-    def __init__(self, db: Session) -> None:
-        super().__init__(Match, db)
+    def __init__(self, db: Session, owner_id: int | None = None) -> None:
+        super().__init__(Match, db, owner_id)
 
     def list_team_matches_between(
         self,
@@ -28,6 +28,7 @@ class MatchRepository(BaseRepository[Match]):
         )
         if exclude_match_id is not None:
             statement = statement.where(Match.id != exclude_match_id)
+        statement = self._filter_owner(statement)
         return list(self.db.scalars(statement).all())
 
     def get_referee_match_at(
@@ -43,6 +44,7 @@ class MatchRepository(BaseRepository[Match]):
         )
         if exclude_match_id is not None:
             statement = statement.where(Match.id != exclude_match_id)
+        statement = self._filter_owner(statement)
         return self.db.scalar(statement)
 
     def get_next_team_match_after(
@@ -62,6 +64,7 @@ class MatchRepository(BaseRepository[Match]):
             .order_by(Match.match_datetime, Match.id)
             .limit(1)
         )
+        statement = self._filter_owner(statement)
         return self.db.scalar(statement)
 
     def list_by_season(
@@ -88,6 +91,7 @@ class MatchRepository(BaseRepository[Match]):
             statement = statement.where(Match.match_datetime >= starts_at)
         if ends_at is not None:
             statement = statement.where(Match.match_datetime < ends_at)
+        statement = self._filter_owner(statement)
         return list(self.db.scalars(statement).all())
 
     def list_by_stadium(self, stadium_id: int) -> list[Match]:
@@ -96,6 +100,7 @@ class MatchRepository(BaseRepository[Match]):
             .where(Match.stadium_id == stadium_id)
             .order_by(Match.match_datetime, Match.id)
         )
+        statement = self._filter_owner(statement)
         return list(self.db.scalars(statement).all())
 
     def list_by_tournament_and_stage(
@@ -109,6 +114,7 @@ class MatchRepository(BaseRepository[Match]):
             .where(Match.tournament_id == tournament_id, Match.stage == stage)
             .order_by(Match.round_number, Match.match_datetime, Match.id)
         )
+        statement = self._filter_owner(statement)
         return list(self.db.scalars(statement).all())
 
     def list_championship_matches_by_season(self, season_id: int) -> list[Match]:
@@ -121,4 +127,5 @@ class MatchRepository(BaseRepository[Match]):
             )
             .order_by(Match.match_datetime, Match.id)
         )
+        statement = self._filter_owner(statement)
         return list(self.db.scalars(statement).all())

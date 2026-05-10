@@ -18,6 +18,10 @@ class Stadium(Base):
     __table_args__ = (CheckConstraint("capacity > 0", name="ck_stadium_capacity"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
     name: Mapped[str] = mapped_column(String(160), index=True)
     city: Mapped[str] = mapped_column(String(120))
     address: Mapped[str] = mapped_column(String(255))

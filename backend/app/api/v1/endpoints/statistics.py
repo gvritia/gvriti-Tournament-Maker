@@ -13,11 +13,11 @@ from app.services.statistics_service import StatisticsService
 router = APIRouter()
 
 
-def get_statistics_service(db: DbSession) -> StatisticsService:
+def get_statistics_service(db: DbSession, owner_id: int) -> StatisticsService:
     return StatisticsService(
-        seasons=SeasonRepository(db),
-        events=MatchEventRepository(db),
-        player_stats=PlayerSeasonStatsRepository(db),
+        seasons=SeasonRepository(db, owner_id),
+        events=MatchEventRepository(db, owner_id),
+        player_stats=PlayerSeasonStatsRepository(db, owner_id),
     )
 
 
@@ -30,10 +30,12 @@ def get_statistics_service(db: DbSession) -> StatisticsService:
 def get_player_stats(
     season_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> list[PlayerSeasonStatsRead]:
     try:
-        return get_statistics_service(db).get_player_stats_for_season(season_id)
+        return get_statistics_service(db, current_user.id).get_player_stats_for_season(
+            season_id
+        )
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -47,10 +49,13 @@ def get_player_stats(
 def recalculate_player_stats(
     season_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> list[PlayerSeasonStatsRead]:
     try:
-        return get_statistics_service(db).recalculate_player_stats_for_season(season_id)
+        return get_statistics_service(
+            db,
+            current_user.id,
+        ).recalculate_player_stats_for_season(season_id)
     except (ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -65,11 +70,11 @@ def get_player_leaders(
     season_id: int,
     metric: str,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
     limit: int = Query(default=10, ge=1, le=100),
 ) -> list[PlayerSeasonStatsRead]:
     try:
-        return get_statistics_service(db).get_leaders(
+        return get_statistics_service(db, current_user.id).get_leaders(
             season_id=season_id,
             metric=metric,
             limit=limit,

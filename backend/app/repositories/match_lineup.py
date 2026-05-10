@@ -6,11 +6,12 @@ from app.repositories.base import BaseRepository
 
 
 class MatchLineupRepository(BaseRepository[MatchLineup]):
-    def __init__(self, db: Session) -> None:
-        super().__init__(MatchLineup, db)
+    def __init__(self, db: Session, owner_id: int | None = None) -> None:
+        super().__init__(MatchLineup, db, owner_id)
 
     def list_by_match(self, match_id: int) -> list[MatchLineup]:
         statement = select(MatchLineup).where(MatchLineup.match_id == match_id)
+        statement = self._filter_owner(statement)
         return list(self.db.scalars(statement).all())
 
     def list_by_match_and_team(
@@ -23,6 +24,7 @@ class MatchLineupRepository(BaseRepository[MatchLineup]):
             MatchLineup.match_id == match_id,
             MatchLineup.team_id == team_id,
         )
+        statement = self._filter_owner(statement)
         return list(self.db.scalars(statement).all())
 
     def get_by_match_and_player(
@@ -31,12 +33,12 @@ class MatchLineupRepository(BaseRepository[MatchLineup]):
         match_id: int,
         player_id: int,
     ) -> MatchLineup | None:
-        return self.db.scalar(
-            select(MatchLineup).where(
-                MatchLineup.match_id == match_id,
-                MatchLineup.player_id == player_id,
-            )
+        statement = select(MatchLineup).where(
+            MatchLineup.match_id == match_id,
+            MatchLineup.player_id == player_id,
         )
+        statement = self._filter_owner(statement)
+        return self.db.scalar(statement)
 
     def get_by_match_team_and_number(
         self,
@@ -53,4 +55,5 @@ class MatchLineupRepository(BaseRepository[MatchLineup]):
         )
         if exclude_lineup_id is not None:
             statement = statement.where(MatchLineup.id != exclude_lineup_id)
+        statement = self._filter_owner(statement)
         return self.db.scalar(statement)

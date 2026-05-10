@@ -51,7 +51,11 @@ class MatchProtocolService:
             assist_player_id=payload.assist_player_id,
         )
 
-        event = MatchEvent(match_id=match_id, **payload.model_dump())
+        event = MatchEvent(
+            owner_id=self.events.require_owner_id(),
+            match_id=match_id,
+            **payload.model_dump(),
+        )
         try:
             self.events.add(event)
             self.events.db.commit()

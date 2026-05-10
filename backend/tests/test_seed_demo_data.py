@@ -10,6 +10,7 @@ from app.models.referee import Referee
 from app.models.stadium import Stadium
 from app.models.team import Team
 from app.models.tournament import Tournament
+from app.models.user import User
 from app.scripts.seed_demo_data import (
     DemoDataSeeder,
     read_clubs_csv,
@@ -85,7 +86,11 @@ def test_demo_data_seeder_is_idempotent_and_resolves_duplicate_numbers(
     assert second_summary.referees == 8
     assert second_summary.matches == 2
 
+    owner = db_session.scalar(select(User).where(User.email == "demo@example.com"))
+    assert owner is not None
+
     teams = list(db_session.scalars(select(Team).order_by(Team.previous_season_place)))
+    assert {team.owner_id for team in teams} == {owner.id}
     assert [team.name for team in teams] == [
         "Alpha FC",
         "Beta FC",
@@ -96,10 +101,12 @@ def test_demo_data_seeder_is_idempotent_and_resolves_duplicate_numbers(
 
     stadiums = list(db_session.scalars(select(Stadium).order_by(Stadium.name)))
     assert len(stadiums) == 4
+    assert {stadium.owner_id for stadium in stadiums} == {owner.id}
     assert {stadium.capacity for stadium in stadiums} == {30000}
     assert {stadium.home_team_id for stadium in stadiums} == {team.id for team in teams}
 
     tournaments = list(db_session.scalars(select(Tournament).order_by(Tournament.type)))
+    assert {tournament.owner_id for tournament in tournaments} == {owner.id}
     assert {tournament.type for tournament in tournaments} == {
         TournamentType.CHAMPIONSHIP,
         TournamentType.CUP,
@@ -115,9 +122,11 @@ def test_demo_data_seeder_is_idempotent_and_resolves_duplicate_numbers(
     assert alpha_numbers == [1, 2, 9]
 
     referees = list(db_session.scalars(select(Referee)))
+    assert {referee.owner_id for referee in referees} == {owner.id}
     assert len(referees) == 8
 
     cup_matches = list(db_session.scalars(select(Match).order_by(Match.id)))
+    assert {match.owner_id for match in cup_matches} == {owner.id}
     assert [match.stage for match in cup_matches] == [
         CupStage.SEMIFINAL,
         CupStage.SEMIFINAL,

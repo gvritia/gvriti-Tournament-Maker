@@ -138,6 +138,7 @@ class ScheduleService:
                     away_team = teams_by_id[away_team_id]
                     stadium = stadiums_by_team_id[home_team_id]
                     match = Match(
+                        owner_id=self.matches.require_owner_id(),
                         tournament_id=tournament.id,
                         season_id=season.id,
                         home_team_id=home_team_id,

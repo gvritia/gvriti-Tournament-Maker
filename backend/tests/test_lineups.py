@@ -2,10 +2,6 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-
-from app.core.constants import MatchEventType
-from app.models.match_event import MatchEvent
 
 
 def auth_headers(client: TestClient) -> dict[str, str]:
@@ -151,6 +147,29 @@ def create_lineup_payload(
         "position": position,
         "number": number,
     }
+
+
+def add_match_event(
+    client: TestClient,
+    headers: dict[str, str],
+    *,
+    match_id: int,
+    team_id: int,
+    player_id: int,
+    event_type: str,
+    minute: int,
+) -> None:
+    response = client.post(
+        f"/api/v1/matches/{match_id}/events",
+        json={
+            "team_id": team_id,
+            "player_id": player_id,
+            "event_type": event_type,
+            "minute": minute,
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201
 
 
 def setup_lineup_context(
@@ -349,7 +368,6 @@ def test_lineup_rejects_duplicate_team_number(client: TestClient) -> None:
 
 def test_lineup_rejects_suspended_player_after_red_card(
     client: TestClient,
-    db_session: Session,
 ) -> None:
     headers = auth_headers(client)
     context = setup_lineup_context(client, headers)
@@ -363,16 +381,15 @@ def test_lineup_rejects_suspended_player_after_red_card(
         stadium_id=context["stadium_id"],
         match_datetime="2026-04-03T18:00:00",
     )
-    db_session.add(
-        MatchEvent(
-            match_id=context["match"]["id"],
-            team_id=context["home_team_id"],
-            player_id=context["home_player_id"],
-            event_type=MatchEventType.RED_CARD,
-            minute=80,
-        )
+    add_match_event(
+        client,
+        headers,
+        match_id=context["match"]["id"],
+        team_id=context["home_team_id"],
+        player_id=context["home_player_id"],
+        event_type="red_card",
+        minute=80,
     )
-    db_session.commit()
 
     response = client.post(
         f"/api/v1/matches/{next_match['id']}/lineups",
@@ -431,7 +448,6 @@ def test_generate_lineup_selects_eligible_players(client: TestClient) -> None:
 
 def test_generate_lineup_replaces_suspended_preferred_player(
     client: TestClient,
-    db_session: Session,
 ) -> None:
     headers = auth_headers(client)
     context = setup_lineup_context(client, headers)
@@ -452,16 +468,15 @@ def test_generate_lineup_replaces_suspended_preferred_player(
         stadium_id=context["stadium_id"],
         match_datetime="2026-04-03T18:00:00",
     )
-    db_session.add(
-        MatchEvent(
-            match_id=context["match"]["id"],
-            team_id=context["home_team_id"],
-            player_id=context["home_player_id"],
-            event_type=MatchEventType.RED_CARD,
-            minute=80,
-        )
+    add_match_event(
+        client,
+        headers,
+        match_id=context["match"]["id"],
+        team_id=context["home_team_id"],
+        player_id=context["home_player_id"],
+        event_type="red_card",
+        minute=80,
     )
-    db_session.commit()
 
     response = client.post(
         f"/api/v1/matches/{next_match['id']}/lineups/generate",

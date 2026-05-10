@@ -19,6 +19,7 @@ from app.core.constants import (
     TournamentType,
 )
 from app.core.exceptions import AppError
+from app.core.security import get_password_hash
 from app.db.session import SessionLocal
 from app.models.match import Match
 from app.models.player import Player
@@ -27,6 +28,7 @@ from app.models.season import Season
 from app.models.stadium import Stadium
 from app.models.team import Team
 from app.models.tournament import Tournament
+from app.models.user import User
 from app.repositories.match import MatchRepository
 from app.repositories.season import SeasonRepository
 from app.repositories.stadium import StadiumRepository
@@ -103,6 +105,9 @@ class DemoDataSeeder:
         *,
         clubs_csv: Path,
         squads_csv: Path,
+        owner_email: str = "demo@example.com",
+        owner_nickname: str = "demo-organizer",
+        owner_password: str = "DemoPass123",
         season_name: str = "LaLiga Demo 2026/27",
         season_start: date = date(2026, 8, 1),
         season_end: date = date(2027, 6, 30),
@@ -113,48 +118,91 @@ class DemoDataSeeder:
     ) -> DemoSeedSummary:
         clubs = read_clubs_csv(clubs_csv)
         players = read_squads_csv(squads_csv)
+        owner = self._upsert_owner(
+            email=owner_email,
+            nickname=owner_nickname,
+            password=owner_password,
+        )
 
         season = self._upsert_season(
+            owner_id=owner.id,
             name=season_name,
             start_date=season_start,
             end_date=season_end,
         )
         championship = self._upsert_tournament(
+            owner_id=owner.id,
             season_id=season.id,
             name=championship_name,
             tournament_type=TournamentType.CHAMPIONSHIP,
         )
         cup = self._upsert_tournament(
+            owner_id=owner.id,
             season_id=season.id,
             name=cup_name,
             tournament_type=TournamentType.CUP,
         )
-        teams_by_source_id = self._upsert_teams_and_stadiums(clubs)
-        self._upsert_players(players=players, teams_by_source_id=teams_by_source_id)
-        self._upsert_referees()
+        teams_by_source_id = self._upsert_teams_and_stadiums(
+            owner_id=owner.id,
+            clubs=clubs,
+        )
+        self._upsert_players(
+            owner_id=owner.id,
+            players=players,
+            teams_by_source_id=teams_by_source_id,
+        )
+        self._upsert_referees(owner_id=owner.id)
         self.db.commit()
 
         if generate_championship_schedule:
             self._generate_championship_schedule(
+                owner_id=owner.id,
                 tournament=championship,
                 team_ids=[teams_by_source_id[club.club_id].id for club in clubs],
                 season_start=season_start,
             )
         if generate_cup_semifinals:
-            self._generate_cup_semifinals(cup=cup, season_end=season_end)
+            self._generate_cup_semifinals(
+                owner_id=owner.id,
+                cup=cup,
+                season_end=season_end,
+            )
 
-        return self._build_summary()
+        return self._build_summary(owner_id=owner.id)
+
+    def _upsert_owner(
+        self,
+        *,
+        email: str,
+        nickname: str,
+        password: str,
+    ) -> User:
+        normalized_email = email.lower()
+        owner = self.db.scalar(select(User).where(User.email == normalized_email))
+        if owner is None:
+            owner = User(
+                nickname=nickname,
+                email=normalized_email,
+                password_hash=get_password_hash(password),
+            )
+            self.db.add(owner)
+        self.db.flush()
+        return owner
 
     def _upsert_season(
         self,
         *,
+        owner_id: int,
         name: str,
         start_date: date,
         end_date: date,
     ) -> Season:
-        season = self.db.scalar(select(Season).where(Season.name == name))
+        season = self.db.scalar(
+            select(Season).where(Season.owner_id == owner_id, Season.name == name)
+        )
         if season is None:
             season = Season(
+                owner_id=owner_id,
                 name=name,
                 start_date=start_date,
                 end_date=end_date,
@@ -171,18 +219,21 @@ class DemoDataSeeder:
     def _upsert_tournament(
         self,
         *,
+        owner_id: int,
         season_id: int,
         name: str,
         tournament_type: TournamentType,
     ) -> Tournament:
         tournament = self.db.scalar(
             select(Tournament).where(
+                Tournament.owner_id == owner_id,
                 Tournament.season_id == season_id,
                 Tournament.name == name,
             )
         )
         if tournament is None:
             tournament = Tournament(
+                owner_id=owner_id,
                 season_id=season_id,
                 name=name,
                 type=tournament_type,
@@ -197,19 +248,34 @@ class DemoDataSeeder:
 
     def _upsert_teams_and_stadiums(
         self,
+        *,
+        owner_id: int,
         clubs: list[ClubSeedRow],
     ) -> dict[int, Team]:
         teams_by_source_id: dict[int, Team] = {}
         for previous_place, club in enumerate(clubs, start=1):
-            team = self._upsert_team(club=club, previous_place=previous_place)
-            self._upsert_stadium(club=club, team=team)
+            team = self._upsert_team(
+                owner_id=owner_id,
+                club=club,
+                previous_place=previous_place,
+            )
+            self._upsert_stadium(owner_id=owner_id, club=club, team=team)
             teams_by_source_id[club.club_id] = team
         return teams_by_source_id
 
-    def _upsert_team(self, *, club: ClubSeedRow, previous_place: int) -> Team:
-        team = self.db.scalar(select(Team).where(Team.name == club.club_name))
+    def _upsert_team(
+        self,
+        *,
+        owner_id: int,
+        club: ClubSeedRow,
+        previous_place: int,
+    ) -> Team:
+        team = self.db.scalar(
+            select(Team).where(Team.owner_id == owner_id, Team.name == club.club_name)
+        )
         if team is None:
             team = Team(
+                owner_id=owner_id,
                 name=club.club_name,
                 city=club.city,
                 address=club.stadium_address,
@@ -225,10 +291,22 @@ class DemoDataSeeder:
         self.db.flush()
         return team
 
-    def _upsert_stadium(self, *, club: ClubSeedRow, team: Team) -> Stadium:
-        stadium = self.db.scalar(select(Stadium).where(Stadium.name == club.stadium))
+    def _upsert_stadium(
+        self,
+        *,
+        owner_id: int,
+        club: ClubSeedRow,
+        team: Team,
+    ) -> Stadium:
+        stadium = self.db.scalar(
+            select(Stadium).where(
+                Stadium.owner_id == owner_id,
+                Stadium.name == club.stadium,
+            )
+        )
         if stadium is None:
             stadium = Stadium(
+                owner_id=owner_id,
                 name=club.stadium,
                 city=club.city,
                 address=club.stadium_address,
@@ -247,6 +325,7 @@ class DemoDataSeeder:
     def _upsert_players(
         self,
         *,
+        owner_id: int,
         players: list[PlayerSeedRow],
         teams_by_source_id: dict[int, Team],
     ) -> None:
@@ -258,7 +337,10 @@ class DemoDataSeeder:
             existing_players = {
                 player.full_name: player
                 for player in self.db.scalars(
-                    select(Player).where(Player.team_id == team.id)
+                    select(Player).where(
+                        Player.owner_id == owner_id,
+                        Player.team_id == team.id,
+                    )
                 )
             }
             used_numbers: set[int] = set()
@@ -270,6 +352,7 @@ class DemoDataSeeder:
                 player = existing_players.get(player_row.player_name)
                 if player is None:
                     player = Player(
+                        owner_id=owner_id,
                         full_name=player_row.player_name,
                         age=player_row.age,
                         position=player_row.position,
@@ -304,34 +387,40 @@ class DemoDataSeeder:
                 return number
         raise ValueError("Cannot assign a unique player number between 1 and 99.")
 
-    def _upsert_referees(self) -> None:
+    def _upsert_referees(self, *, owner_id: int) -> None:
         for full_name in DEFAULT_REFEREES:
             referee = self.db.scalar(
-                select(Referee).where(Referee.full_name == full_name)
+                select(Referee).where(
+                    Referee.owner_id == owner_id,
+                    Referee.full_name == full_name,
+                )
             )
             if referee is None:
-                self.db.add(Referee(full_name=full_name))
+                self.db.add(Referee(owner_id=owner_id, full_name=full_name))
         self.db.flush()
 
     def _generate_championship_schedule(
         self,
         *,
+        owner_id: int,
         tournament: Tournament,
         team_ids: list[int],
         season_start: date,
     ) -> None:
         existing_match = self.db.scalar(
-            select(Match).where(Match.tournament_id == tournament.id).limit(1)
+            select(Match)
+            .where(Match.owner_id == owner_id, Match.tournament_id == tournament.id)
+            .limit(1)
         )
         if existing_match is not None:
             return
 
         schedule_service = ScheduleService(
-            matches=MatchRepository(self.db),
-            tournaments=TournamentRepository(self.db),
-            seasons=SeasonRepository(self.db),
-            teams=TeamRepository(self.db),
-            stadiums=StadiumRepository(self.db),
+            matches=MatchRepository(self.db, owner_id),
+            tournaments=TournamentRepository(self.db, owner_id),
+            seasons=SeasonRepository(self.db, owner_id),
+            teams=TeamRepository(self.db, owner_id),
+            stadiums=StadiumRepository(self.db, owner_id),
             ticket_prices=TicketPriceService(),
         )
         payload = ChampionshipScheduleGenerate(
@@ -348,21 +437,31 @@ class DemoDataSeeder:
             payload=payload,
         )
 
-    def _generate_cup_semifinals(self, *, cup: Tournament, season_end: date) -> None:
+    def _generate_cup_semifinals(
+        self,
+        *,
+        owner_id: int,
+        cup: Tournament,
+        season_end: date,
+    ) -> None:
         existing_semifinal = self.db.scalar(
             select(Match)
-            .where(Match.tournament_id == cup.id, Match.stage == CupStage.SEMIFINAL)
+            .where(
+                Match.owner_id == owner_id,
+                Match.tournament_id == cup.id,
+                Match.stage == CupStage.SEMIFINAL,
+            )
             .limit(1)
         )
         if existing_semifinal is not None:
             return
 
         cup_service = CupService(
-            matches=MatchRepository(self.db),
-            tournaments=TournamentRepository(self.db),
-            teams=TeamRepository(self.db),
-            stadiums=StadiumRepository(self.db),
-            schedule=ScheduleService(MatchRepository(self.db)),
+            matches=MatchRepository(self.db, owner_id),
+            tournaments=TournamentRepository(self.db, owner_id),
+            teams=TeamRepository(self.db, owner_id),
+            stadiums=StadiumRepository(self.db, owner_id),
+            schedule=ScheduleService(MatchRepository(self.db, owner_id)),
             ticket_prices=TicketPriceService(),
         )
         first_semifinal_date = season_end - timedelta(days=30)
@@ -378,19 +477,26 @@ class DemoDataSeeder:
         )
         cup_service.generate_semifinals(tournament_id=cup.id, payload=payload)
 
-    def _build_summary(self) -> DemoSeedSummary:
+    def _build_summary(self, *, owner_id: int) -> DemoSeedSummary:
         return DemoSeedSummary(
-            seasons=self._count(Season),
-            tournaments=self._count(Tournament),
-            teams=self._count(Team),
-            stadiums=self._count(Stadium),
-            players=self._count(Player),
-            referees=self._count(Referee),
-            matches=self._count(Match),
+            seasons=self._count(Season, owner_id=owner_id),
+            tournaments=self._count(Tournament, owner_id=owner_id),
+            teams=self._count(Team, owner_id=owner_id),
+            stadiums=self._count(Stadium, owner_id=owner_id),
+            players=self._count(Player, owner_id=owner_id),
+            referees=self._count(Referee, owner_id=owner_id),
+            matches=self._count(Match, owner_id=owner_id),
         )
 
-    def _count(self, model: type) -> int:
-        return int(self.db.scalar(select(func.count()).select_from(model)) or 0)
+    def _count(self, model: type, *, owner_id: int) -> int:
+        return int(
+            self.db.scalar(
+                select(func.count())
+                .select_from(model)
+                .where(model.owner_id == owner_id)
+            )
+            or 0
+        )
 
 
 def read_clubs_csv(path: Path) -> list[ClubSeedRow]:
@@ -471,6 +577,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Seed LaLiga demo data from CSV.")
     parser.add_argument("--clubs-csv", type=Path, required=True)
     parser.add_argument("--squads-csv", type=Path, required=True)
+    parser.add_argument("--owner-email", default="demo@example.com")
+    parser.add_argument("--owner-nickname", default="demo-organizer")
+    parser.add_argument("--owner-password", default="DemoPass123")
     parser.add_argument("--season-name", default="LaLiga Demo 2026/27")
     parser.add_argument(
         "--season-start",
@@ -511,6 +620,9 @@ def main() -> None:
             ).seed_from_csv(
                 clubs_csv=args.clubs_csv,
                 squads_csv=args.squads_csv,
+                owner_email=args.owner_email,
+                owner_nickname=args.owner_nickname,
+                owner_password=args.owner_password,
                 season_name=args.season_name,
                 season_start=args.season_start,
                 season_end=args.season_end,

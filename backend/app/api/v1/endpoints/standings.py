@@ -13,11 +13,11 @@ from app.services.standings_service import StandingsService
 router = APIRouter()
 
 
-def get_standings_service(db: DbSession) -> StandingsService:
+def get_standings_service(db: DbSession, owner_id: int) -> StandingsService:
     return StandingsService(
-        seasons=SeasonRepository(db),
-        matches=MatchRepository(db),
-        team_stats=TeamSeasonStatsRepository(db),
+        seasons=SeasonRepository(db, owner_id),
+        matches=MatchRepository(db, owner_id),
+        team_stats=TeamSeasonStatsRepository(db, owner_id),
     )
 
 
@@ -30,10 +30,12 @@ def get_standings_service(db: DbSession) -> StandingsService:
 def get_season_standings(
     season_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> list[TeamSeasonStatsRead]:
     try:
-        return get_standings_service(db).get_season_standings(season_id)
+        return get_standings_service(db, current_user.id).get_season_standings(
+            season_id
+        )
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -47,9 +49,11 @@ def get_season_standings(
 def recalculate_season_standings(
     season_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> list[TeamSeasonStatsRead]:
     try:
-        return get_standings_service(db).recalculate_for_season(season_id)
+        return get_standings_service(db, current_user.id).recalculate_for_season(
+            season_id
+        )
     except (ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc

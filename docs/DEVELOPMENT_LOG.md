@@ -1,5 +1,34 @@
 # Development Log
 
+## 2026-05-10
+
+### User-Scoped Data Isolation
+
+- Added `owner_id` ownership to all subject-area tables: seasons, teams,
+  players, stadiums, referees, tournaments, matches, match lineups, match
+  events, team season stats, and player season stats.
+- Updated repositories, services, and endpoints so all domain reads, writes,
+  helper lookups, schedule generation, cup bracket operations, match protocols,
+  random results, standings, and statistics run in the current user's scope.
+- Changed season/team uniqueness to per-user scope and added an Alembic
+  migration that backfills existing data to an owner.
+- Updated demo data seeding to create or reuse a demo organizer and attach all
+  seeded rows to that user.
+- Added ownership tests for cross-user lists, CRUD access, duplicate names per
+  user, foreign linked IDs, lineups/events, random results, schedule views,
+  standings, statistics, cup brackets, and cup auto-selection.
+- Added a README API defense flow for logging in, using the demo token, and
+  demonstrating cross-user isolation.
+- Changed files: `backend/app/models/*`, `backend/app/repositories/*`,
+  `backend/app/services/*`, `backend/app/api/v1/endpoints/*`,
+  `backend/alembic/versions/9d3f4e1a6b2c_add_owner_scope.py`,
+  `backend/app/scripts/seed_demo_data.py`, `backend/tests/test_owner_scope.py`,
+  `backend/tests/test_lineups.py`, `backend/tests/test_seed_demo_data.py`,
+  `backend/README.md`, `AGENTS.md`, `docs/PROJECT_CONTEXT.md`,
+  `docs/ARCHITECTURE.md`, and `docs/DEVELOPMENT_LOG.md`.
+- Next steps: connect the future frontend to the authenticated user flow and
+  use the demo seed command for a full defense walkthrough.
+
 ## 2026-05-09
 
 ### Demo Data Seeding

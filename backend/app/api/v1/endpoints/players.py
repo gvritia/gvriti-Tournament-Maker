@@ -12,8 +12,8 @@ from app.services.player_service import PlayerService
 router = APIRouter()
 
 
-def get_player_service(db: DbSession) -> PlayerService:
-    return PlayerService(PlayerRepository(db), TeamRepository(db))
+def get_player_service(db: DbSession, owner_id: int) -> PlayerService:
+    return PlayerService(PlayerRepository(db, owner_id), TeamRepository(db, owner_id))
 
 
 @router.get(
@@ -24,11 +24,14 @@ def get_player_service(db: DbSession) -> PlayerService:
 )
 def list_players(
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=100),
 ) -> list[PlayerRead]:
-    return get_player_service(db).list_players(offset=offset, limit=limit)
+    return get_player_service(db, current_user.id).list_players(
+        offset=offset,
+        limit=limit,
+    )
 
 
 @router.post(
@@ -40,10 +43,10 @@ def list_players(
 def create_player(
     payload: PlayerCreate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> PlayerRead:
     try:
-        return get_player_service(db).create_player(payload)
+        return get_player_service(db, current_user.id).create_player(payload)
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -57,10 +60,10 @@ def create_player(
 def get_player(
     player_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> PlayerRead:
     try:
-        return get_player_service(db).get_player(player_id)
+        return get_player_service(db, current_user.id).get_player(player_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -75,10 +78,13 @@ def update_player(
     player_id: int,
     payload: PlayerUpdate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> PlayerRead:
     try:
-        return get_player_service(db).update_player(player_id, payload)
+        return get_player_service(db, current_user.id).update_player(
+            player_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -91,9 +97,9 @@ def update_player(
 def delete_player(
     player_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> None:
     try:
-        get_player_service(db).delete_player(player_id)
+        get_player_service(db, current_user.id).delete_player(player_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc

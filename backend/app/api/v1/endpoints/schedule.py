@@ -19,13 +19,13 @@ from app.services.ticket_price_service import TicketPriceService
 router = APIRouter()
 
 
-def get_schedule_service(db: DbSession) -> ScheduleService:
+def get_schedule_service(db: DbSession, owner_id: int) -> ScheduleService:
     return ScheduleService(
-        matches=MatchRepository(db),
-        tournaments=TournamentRepository(db),
-        seasons=SeasonRepository(db),
-        teams=TeamRepository(db),
-        stadiums=StadiumRepository(db),
+        matches=MatchRepository(db, owner_id),
+        tournaments=TournamentRepository(db, owner_id),
+        seasons=SeasonRepository(db, owner_id),
+        teams=TeamRepository(db, owner_id),
+        stadiums=StadiumRepository(db, owner_id),
         ticket_prices=TicketPriceService(),
     )
 
@@ -40,10 +40,10 @@ def generate_championship_schedule(
     tournament_id: int,
     payload: ChampionshipScheduleGenerate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> list[MatchRead]:
     try:
-        return get_schedule_service(db).generate_championship_schedule(
+        return get_schedule_service(db, current_user.id).generate_championship_schedule(
             tournament_id=tournament_id,
             payload=payload,
         )
@@ -60,14 +60,14 @@ def generate_championship_schedule(
 def list_season_matches(
     season_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
     team_id: int | None = Query(default=None, gt=0),
     tournament_id: int | None = Query(default=None, gt=0),
     date_from: date | None = None,
     date_to: date | None = None,
 ) -> list[MatchRead]:
     try:
-        return get_schedule_service(db).list_season_matches(
+        return get_schedule_service(db, current_user.id).list_season_matches(
             season_id,
             team_id=team_id,
             tournament_id=tournament_id,
@@ -87,9 +87,11 @@ def list_season_matches(
 def list_stadium_matches(
     stadium_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> list[MatchRead]:
     try:
-        return get_schedule_service(db).list_stadium_matches(stadium_id)
+        return get_schedule_service(db, current_user.id).list_stadium_matches(
+            stadium_id
+        )
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc

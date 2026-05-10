@@ -191,6 +191,7 @@ class CupService:
         previous_season_table_size: int | None,
     ) -> Match:
         return Match(
+            owner_id=self.matches.require_owner_id(),
             tournament_id=tournament.id,
             season_id=tournament.season_id,
             home_team_id=home_team.id,

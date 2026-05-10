@@ -27,7 +27,10 @@ class StadiumService:
         if self.stadiums.get_by_name(payload.name) is not None:
             raise ConflictError("A stadium with this name already exists.")
 
-        stadium = Stadium(**payload.model_dump())
+        stadium = Stadium(
+            owner_id=self.stadiums.require_owner_id(),
+            **payload.model_dump(),
+        )
         try:
             self.stadiums.add(stadium)
             self.stadiums.db.commit()

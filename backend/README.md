@@ -1,9 +1,10 @@
 # Tournament Maker Backend
 
 Backend for a study project that manages a national football championship and a
-cup tournament. This iteration contains only the backend architecture skeleton:
-FastAPI app, SQLAlchemy models, Pydantic schemas, Alembic config, PostgreSQL
-Docker Compose config, and a healthcheck endpoint.
+cup tournament. The backend includes JWT auth, user-scoped tournament data,
+CRUD endpoints, schedule generation, cup bracket flow, match lineups, match
+protocols, random results, standings, player statistics, Alembic migrations,
+and demo data seeding.
 
 Frontend is intentionally not created in this iteration.
 
@@ -34,6 +35,7 @@ python -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 Copy-Item .env.example .env
+alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
@@ -74,9 +76,43 @@ python -m app.scripts.seed_demo_data `
 ```
 
 The seed command creates a demo season, championship and cup tournaments, teams,
-home stadiums, players, referees, and cup semifinal fixtures. It can be run
-again safely for the same dataset. Add `--generate-championship-schedule` to
-also create a full double round-robin championship schedule.
+home stadiums, players, referees, and cup semifinal fixtures for the default
+demo user `demo@example.com` / `DemoPass123`. It can be run again safely for the
+same dataset. Add `--generate-championship-schedule` to also create a full
+double round-robin championship schedule.
+
+The demo user can be changed with `--owner-email`, `--owner-nickname`, and
+`--owner-password`.
+
+## API Defense Flow
+
+1. Start PostgreSQL, install dependencies, run `alembic upgrade head`, and start
+   `uvicorn app.main:app --reload`.
+2. Seed demo data with `python -m app.scripts.seed_demo_data ...`.
+3. Log in and save the JWT token:
+
+```powershell
+$token = (Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/api/v1/auth/login `
+  -ContentType "application/json" `
+  -Body '{"email":"demo@example.com","password":"DemoPass123"}').access_token
+
+$headers = @{ Authorization = "Bearer $token" }
+```
+
+4. Show the main protected flow:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/api/v1/auth/me -Headers $headers
+Invoke-RestMethod http://127.0.0.1:8000/api/v1/seasons/ -Headers $headers
+Invoke-RestMethod http://127.0.0.1:8000/api/v1/teams/ -Headers $headers
+Invoke-RestMethod http://127.0.0.1:8000/api/v1/matches/ -Headers $headers
+```
+
+5. Create a second user and repeat the same list calls with the second user's
+   token. The second user receives only their own empty or newly created data,
+   and direct requests for the demo user's entity IDs return `404 Not Found`.
 
 ## Alembic
 

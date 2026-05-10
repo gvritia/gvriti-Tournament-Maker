@@ -37,6 +37,12 @@ Current work should stay inside the backend, docs, and repository configuration.
   response mapping only.
 - Access the database through `backend/app/repositories`.
 - Manage schema changes through Alembic migrations.
+- All subject-area data must be scoped to the authenticated user through
+  `owner_id`; endpoints and services must pass `current_user.id` into scoped
+  repositories.
+- Creating or updating linked entities must validate foreign IDs through
+  owner-scoped repositories, so users cannot reference another user's data.
+- Season and team names are unique per user, not globally.
 - Do not store arrays of players inside a team. Use `Player.team_id`.
 - Do not store ticket price as the main stadium field. Ticket price belongs to
   `Match.ticket_price`.
@@ -47,6 +53,8 @@ Current work should stay inside the backend, docs, and repository configuration.
 - Store referees through `Match.referee_id`.
 - Store match lineups in `MatchLineup`.
 - Store match protocol events in `MatchEvent`.
+- Demo seed data must create or reuse a demo user and attach seeded entities to
+  that user.
 - Respect domain calendar constraints in services:
   - a team cannot play more than one match per day;
   - a team cannot play more than two matches per week;

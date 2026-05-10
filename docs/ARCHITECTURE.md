@@ -15,6 +15,17 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 ## Current Decisions
 
 - CRUD endpoints require JWT authentication.
+- Subject-area tables use `owner_id` to isolate organizer data. The scoped
+  tables are seasons, teams, players, stadiums, referees, tournaments, matches,
+  match lineups, match events, team season stats, and player season stats.
+- Endpoints pass `current_user.id` into repositories and services; repositories
+  apply owner filtering for reads, lists, helper lookups, and bulk deletes.
+- Services assign `owner_id` when creating domain rows and validate referenced
+  IDs through owner-scoped repositories, so users cannot link their data to
+  another organizer's seasons, teams, players, stadiums, referees, tournaments,
+  matches, lineups, events, or derived stats.
+- Missing or foreign owned entities are reported as not found at the API layer.
+- Season and team names are unique within one owner scope.
 - Database writes are committed in services after repository operations.
 - Domain errors use app-level exceptions:
   - `NotFoundError` -> `404`
@@ -71,8 +82,10 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   tests, `ruff check .`, `black --check .`, and Alembic migration drift checks
   against PostgreSQL.
 - `app.scripts.seed_demo_data` imports parsed LaLiga CSV files and creates demo
-  season data through ORM sessions. The command is idempotent for its own seeded
-  season, teams, stadiums, players, referees, and cup semifinal fixtures.
+  season data through ORM sessions. The command creates or reuses a demo
+  organizer account, assigns all seeded rows to that owner, and is idempotent
+  for its own seeded season, teams, stadiums, players, referees, and cup
+  semifinal fixtures.
 
 ## Implemented Domain Services
 

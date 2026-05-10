@@ -94,7 +94,7 @@ class MatchService:
         data["ticket_sold"] = 0
         data["income"] = Decimal("0.00")
 
-        match = Match(**data)
+        match = Match(owner_id=self.matches.require_owner_id(), **data)
         try:
             self.matches.add(match)
             self.matches.db.commit()

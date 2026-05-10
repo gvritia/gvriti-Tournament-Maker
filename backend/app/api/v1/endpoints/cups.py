@@ -17,13 +17,13 @@ from app.services.ticket_price_service import TicketPriceService
 router = APIRouter()
 
 
-def get_cup_service(db: DbSession) -> CupService:
-    matches = MatchRepository(db)
+def get_cup_service(db: DbSession, owner_id: int) -> CupService:
+    matches = MatchRepository(db, owner_id)
     return CupService(
         matches=matches,
-        tournaments=TournamentRepository(db),
-        teams=TeamRepository(db),
-        stadiums=StadiumRepository(db),
+        tournaments=TournamentRepository(db, owner_id),
+        teams=TeamRepository(db, owner_id),
+        stadiums=StadiumRepository(db, owner_id),
         schedule=ScheduleService(matches),
         ticket_prices=TicketPriceService(),
     )
@@ -39,10 +39,10 @@ def generate_cup_semifinals(
     tournament_id: int,
     payload: CupSemifinalsGenerate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> list[MatchRead]:
     try:
-        return get_cup_service(db).generate_semifinals(
+        return get_cup_service(db, current_user.id).generate_semifinals(
             tournament_id=tournament_id,
             payload=payload,
         )
@@ -60,10 +60,10 @@ def generate_cup_final(
     tournament_id: int,
     payload: CupFinalGenerate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchRead:
     try:
-        return get_cup_service(db).generate_final(
+        return get_cup_service(db, current_user.id).generate_final(
             tournament_id=tournament_id,
             payload=payload,
         )
@@ -80,9 +80,9 @@ def generate_cup_final(
 def get_cup_bracket(
     tournament_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> CupBracketRead:
     try:
-        return get_cup_service(db).get_bracket(tournament_id)
+        return get_cup_service(db, current_user.id).get_bracket(tournament_id)
     except (BusinessRuleError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc

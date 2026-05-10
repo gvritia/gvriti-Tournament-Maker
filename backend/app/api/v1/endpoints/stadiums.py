@@ -12,8 +12,11 @@ from app.services.stadium_service import StadiumService
 router = APIRouter()
 
 
-def get_stadium_service(db: DbSession) -> StadiumService:
-    return StadiumService(StadiumRepository(db), TeamRepository(db))
+def get_stadium_service(db: DbSession, owner_id: int) -> StadiumService:
+    return StadiumService(
+        StadiumRepository(db, owner_id),
+        TeamRepository(db, owner_id),
+    )
 
 
 @router.get(
@@ -24,11 +27,14 @@ def get_stadium_service(db: DbSession) -> StadiumService:
 )
 def list_stadiums(
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=100),
 ) -> list[StadiumRead]:
-    return get_stadium_service(db).list_stadiums(offset=offset, limit=limit)
+    return get_stadium_service(db, current_user.id).list_stadiums(
+        offset=offset,
+        limit=limit,
+    )
 
 
 @router.post(
@@ -40,10 +46,10 @@ def list_stadiums(
 def create_stadium(
     payload: StadiumCreate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> StadiumRead:
     try:
-        return get_stadium_service(db).create_stadium(payload)
+        return get_stadium_service(db, current_user.id).create_stadium(payload)
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -57,10 +63,10 @@ def create_stadium(
 def get_stadium(
     stadium_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> StadiumRead:
     try:
-        return get_stadium_service(db).get_stadium(stadium_id)
+        return get_stadium_service(db, current_user.id).get_stadium(stadium_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -75,10 +81,13 @@ def update_stadium(
     stadium_id: int,
     payload: StadiumUpdate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> StadiumRead:
     try:
-        return get_stadium_service(db).update_stadium(stadium_id, payload)
+        return get_stadium_service(db, current_user.id).update_stadium(
+            stadium_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -91,9 +100,9 @@ def update_stadium(
 def delete_stadium(
     stadium_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> None:
     try:
-        get_stadium_service(db).delete_stadium(stadium_id)
+        get_stadium_service(db, current_user.id).delete_stadium(stadium_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc

@@ -20,6 +20,10 @@ class TeamSeasonStats(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
     season_id: Mapped[int] = mapped_column(ForeignKey("seasons.id", ondelete="CASCADE"))
     played: Mapped[int] = mapped_column(Integer, default=0)
@@ -44,6 +48,10 @@ class PlayerSeasonStats(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
     player_id: Mapped[int] = mapped_column(ForeignKey("players.id", ondelete="CASCADE"))
     season_id: Mapped[int] = mapped_column(ForeignKey("seasons.id", ondelete="CASCADE"))
     goals: Mapped[int] = mapped_column(Integer, default=0)

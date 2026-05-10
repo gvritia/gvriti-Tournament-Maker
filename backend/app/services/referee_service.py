@@ -24,7 +24,10 @@ class RefereeService:
         if self.referees.get_by_full_name(full_name) is not None:
             raise ConflictError("A referee with this full name already exists.")
 
-        referee = Referee(full_name=full_name)
+        referee = Referee(
+            owner_id=self.referees.require_owner_id(),
+            full_name=full_name,
+        )
         try:
             self.referees.add(referee)
             self.referees.db.commit()

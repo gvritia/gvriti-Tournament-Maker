@@ -73,7 +73,11 @@ class LineupService:
             number=payload.number,
         )
 
-        lineup = MatchLineup(match_id=match_id, **payload.model_dump())
+        lineup = MatchLineup(
+            owner_id=self.lineups.require_owner_id(),
+            match_id=match_id,
+            **payload.model_dump(),
+        )
         try:
             self.lineups.add(lineup)
             self.lineups.db.commit()
@@ -128,6 +132,7 @@ class LineupService:
             )
             for index, player in enumerate(selected_players):
                 lineup = MatchLineup(
+                    owner_id=self.lineups.require_owner_id(),
                     match_id=match_id,
                     team_id=payload.team_id,
                     player_id=player.id,

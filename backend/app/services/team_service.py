@@ -23,7 +23,10 @@ class TeamService:
         if self.teams.get_by_name(payload.name) is not None:
             raise ConflictError("A team with this name already exists.")
 
-        team = Team(**payload.model_dump())
+        team = Team(
+            owner_id=self.teams.require_owner_id(),
+            **payload.model_dump(),
+        )
         try:
             self.teams.add(team)
             self.teams.db.commit()

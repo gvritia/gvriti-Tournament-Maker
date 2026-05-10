@@ -20,13 +20,13 @@ from app.services.lineup_service import LineupService
 router = APIRouter()
 
 
-def get_lineup_service(db: DbSession) -> LineupService:
+def get_lineup_service(db: DbSession, owner_id: int) -> LineupService:
     return LineupService(
-        lineups=MatchLineupRepository(db),
-        matches=MatchRepository(db),
-        players=PlayerRepository(db),
-        teams=TeamRepository(db),
-        events=MatchEventRepository(db),
+        lineups=MatchLineupRepository(db, owner_id),
+        matches=MatchRepository(db, owner_id),
+        players=PlayerRepository(db, owner_id),
+        teams=TeamRepository(db, owner_id),
+        events=MatchEventRepository(db, owner_id),
     )
 
 
@@ -39,10 +39,10 @@ def get_lineup_service(db: DbSession) -> LineupService:
 def list_match_lineups(
     match_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> list[MatchLineupRead]:
     try:
-        return get_lineup_service(db).list_match_lineups(match_id)
+        return get_lineup_service(db, current_user.id).list_match_lineups(match_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -57,10 +57,13 @@ def add_player_to_lineup(
     match_id: int,
     payload: MatchLineupCreate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchLineupRead:
     try:
-        return get_lineup_service(db).add_player_to_lineup(match_id, payload)
+        return get_lineup_service(db, current_user.id).add_player_to_lineup(
+            match_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -75,10 +78,13 @@ def generate_lineup(
     match_id: int,
     payload: MatchLineupGenerate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> list[MatchLineupRead]:
     try:
-        return get_lineup_service(db).generate_lineup(match_id, payload)
+        return get_lineup_service(db, current_user.id).generate_lineup(
+            match_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -92,10 +98,10 @@ def generate_lineup(
 def get_lineup(
     lineup_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchLineupRead:
     try:
-        return get_lineup_service(db).get_lineup(lineup_id)
+        return get_lineup_service(db, current_user.id).get_lineup(lineup_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -110,10 +116,13 @@ def update_lineup(
     lineup_id: int,
     payload: MatchLineupUpdate,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> MatchLineupRead:
     try:
-        return get_lineup_service(db).update_lineup(lineup_id, payload)
+        return get_lineup_service(db, current_user.id).update_lineup(
+            lineup_id,
+            payload,
+        )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
@@ -126,9 +135,9 @@ def update_lineup(
 def delete_lineup(
     lineup_id: int,
     db: DbSession,
-    _current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> None:
     try:
-        get_lineup_service(db).delete_lineup(lineup_id)
+        get_lineup_service(db, current_user.id).delete_lineup(lineup_id)
     except NotFoundError as exc:
         raise app_error_to_http_exception(exc) from exc

@@ -6,6 +6,9 @@ The project is a backend system for organizers of a national football
 competition. It should support a league-style championship and a cup tournament
 within seasons, while keeping schedules, teams, players, stadiums, referees,
 match protocols, ticket prices, standings, and player statistics consistent.
+Each organizer works in an isolated data scope: one user's seasons, teams,
+tournaments, matches, lineups, protocol events, standings, and statistics are
+not visible or mutable by another user.
 
 ## Football Competition Description
 
@@ -38,8 +41,19 @@ checks must include both championship and cup matches.
 - Demo seed data can be imported from parsed LaLiga CSV files for clubs and
   squads.
 
+All subject-area entities except `User` are owned by one organizer through
+`owner_id`. API reads and writes always resolve these entities through the
+current authenticated user.
+
 ## Business Constraints
 
+- Domain data is isolated per authenticated user.
+- Lists return only entities owned by the current user.
+- Reading, updating, or deleting another user's entity returns missing-resource
+  behavior instead of exposing the entity.
+- Creating linked entities validates all referenced IDs inside the current
+  user's data scope.
+- Season names and team names are unique per user, not globally.
 - A team cannot play more than one match per day.
 - A team cannot play more than two matches per week.
 - A week is counted from Monday through Sunday.
@@ -144,6 +158,7 @@ checks must include both championship and cup matches.
   by team, tournament, and date range.
 - Cup bracket view.
 - Demo data seeding from parsed club and squad CSV files.
+- User-scoped data isolation for all domain entities and derived tables.
 
 ## Not In MVP
 
@@ -176,10 +191,13 @@ also generate an eligible match lineup automatically.
 Finishing a match through either protocol submission or random result generation
 automatically refreshes player statistics for the season and refreshes
 championship standings when the match belongs to the championship.
+All domain repositories, services, and endpoints now operate in the current
+user's `owner_id` scope, including linked-resource validation and derived
+standings/statistics reads.
 The backend also includes a demo seed command that imports parsed LaLiga club
-and squad CSV files, creates a demo season, championship, cup, teams, stadiums,
-players, referees, and cup semifinal fixtures, with an optional full
-championship schedule.
+and squad CSV files, creates or reuses a demo organizer account, and attaches
+the demo season, championship, cup, teams, stadiums, players, referees, and cup
+semifinal fixtures to that user, with an optional full championship schedule.
 
 ## API Conventions
 

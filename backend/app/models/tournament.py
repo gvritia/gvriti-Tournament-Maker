@@ -18,6 +18,10 @@ class Tournament(Base):
     __tablename__ = "tournaments"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
     season_id: Mapped[int] = mapped_column(ForeignKey("seasons.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(160), index=True)
     type: Mapped[TournamentType] = mapped_column(enum_column(TournamentType))

@@ -69,6 +69,7 @@ class StatisticsService:
         for accumulator in self._sort_accumulators(accumulators.values()):
             self.player_stats.add(
                 PlayerSeasonStats(
+                    owner_id=self.player_stats.require_owner_id(),
                     player_id=accumulator.player_id,
                     season_id=accumulator.season_id,
                     goals=accumulator.goals,
