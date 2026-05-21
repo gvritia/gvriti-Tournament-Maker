@@ -2,6 +2,29 @@
 
 ## 2026-05-21
 
+### Language Toggle And Season Progress Panel
+
+- Added a shared frontend language provider backed by `localStorage`.
+- Added a header language button so the app shell can switch between Russian
+  and English without logging out.
+- Connected the championship workspace to the language provider, covering the
+  page intro, setup notices, action labels, schedule form, standings/schedule
+  headings, leader metric labels, and table empty states.
+- Added an in-page progress panel for full-season protocol generation. The
+  panel opens immediately after the confirmation prompt, advances while the
+  backend request is pending, then switches to done/error after the response.
+- Added small CSS polish for the language control and progress panel, including
+  mobile wrapping for the progress metadata.
+- Verification:
+  - `cmd /c npm run build`
+  - `cmd /c npm audit`
+  - `docker compose build --pull=false frontend`
+  - `docker compose up -d --no-build frontend`
+  - browser smoke: the header language toggle switched the public shell to
+    English and the checked viewport had no page-level horizontal overflow.
+    Authenticated browser login smoke was blocked by the in-app browser
+    clipboard bridge, not by application code.
+
 ### Generation Timeout And Referee Loading UX
 
 - Added per-request timeout support in the frontend API client and gave

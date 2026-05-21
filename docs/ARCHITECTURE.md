@@ -29,10 +29,11 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   Tournament names are unique within one owner season.
 - Teams store an optional `emblem_url` string for a club badge; the API validates
   it as an HTTP/HTTPS URL.
-- `AuthService.register` seeds starter team, player, and home-stadium rows for
-  a newly created organizer through `StarterDataService` before the registration
-  transaction commits. The starter seed only runs when the owner has no teams,
-  so later organizer edits are not overwritten.
+- `AuthService.register` seeds starter team, player, home-stadium, and referee
+  rows for a newly created organizer through `StarterDataService` before the
+  registration transaction commits. Team/player/stadium seeding only runs when
+  the owner has no teams, while referee seeding is idempotent and can fill a
+  missing starter referee pool without overwriting later organizer edits.
 - `SeasonRolloverService` creates a next season from an existing owner-scoped
   source season. Teams, players, stadiums, and referees are not cloned because
   they already belong to the organizer workspace; source tournaments may be
@@ -144,8 +145,8 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - `StatisticsService`: player season statistics recalculation and leaderboards.
 - `seed_demo_data`: utility script for importing club and squad CSV data into a
   runnable demo dataset.
-- `StarterDataService`: starter LaLiga team, player, and home-stadium data for
-  new organizer accounts.
+- `StarterDataService`: starter LaLiga team, player, home-stadium, and referee
+  data for new organizer accounts.
 
 ## Agreed Business Rules For Upcoming Work
 

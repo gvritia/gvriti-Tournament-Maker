@@ -2,6 +2,42 @@
 
 ## 2026-05-21
 
+### Starter Referees, Language Toggle, And Progress UI
+
+- `StarterDataService` now seeds an idempotent starter referee pool for newly
+  registered organizer accounts in addition to the existing starter teams,
+  players, stadiums, and logo URLs.
+- Updated registration coverage so `test_auth.py` verifies the starter referee
+  names along with the 20 teams, 20 stadiums, and 360 players.
+- Adjusted random-result negative tests that need an empty referee pool to
+  explicitly delete the automatically seeded starter referees before making
+  missing-referee assertions.
+- Added a frontend language provider and header button for switching the shell
+  and championship workspace between Russian and English.
+- Added a progress panel for the championship "generate season remainder"
+  action so users see an in-page progress state while the long-running backend
+  request is in flight.
+- Fixed the existing `black --check backend/app backend/tests` failure by
+  formatting `backend/tests/test_crud.py`.
+- Verification:
+  - `.venv\Scripts\python.exe -m pytest backend/tests/test_auth.py backend/tests/test_random_results.py -q`
+  - `.venv\Scripts\python.exe -m pytest backend/tests/test_lineups.py backend/tests/test_cups.py -q`
+  - `.venv\Scripts\python.exe -m ruff check backend/app backend/tests`
+  - `.venv\Scripts\python.exe -m black --check backend/app backend/tests`
+  - `cmd /c npm run build`
+  - `cmd /c npm audit`
+  - `docker compose build --pull=false backend`
+  - `docker compose up -d --no-build backend`
+  - `docker compose build --pull=false frontend`
+  - `docker compose up -d --no-build frontend`
+  - live Docker API smoke: a newly registered temporary organizer received
+    20 teams, 360 players, 20 stadiums, and 8 referees, then the temporary
+    user was deleted.
+  - browser smoke: the header language toggle switched the public shell to
+    English and the checked viewport had no page-level horizontal overflow.
+    Authenticated browser login smoke was blocked by the in-app browser
+    clipboard bridge, not by application code.
+
 ### Generation Smoke Stabilization And Regression Tests
 
 - Frontend API requests now support per-action timeouts. Long-running generation

@@ -10,6 +10,37 @@ Do not spend time polishing the current draft UI.
 
 ## Fixed In Current Draft
 
+### FE-DRAFT-017: Full-season simulation had no progress state
+
+Status: fixed in the current frontend, must not regress.
+
+The championship "generate season remainder" action can take long enough that
+users need visible feedback after confirming the action. The page now opens an
+in-page progress panel while the backend request is pending and switches the
+panel to done/error when the request resolves.
+
+Expected behavior:
+
+- the progress panel opens immediately after the confirmation prompt;
+- the panel does not expose raw API URLs or stack traces;
+- championship reads refresh after a successful response.
+
+### FE-DRAFT-016: Shell had no language switcher
+
+Status: partially fixed in the current frontend.
+
+The app now has a persisted RU/EN language button in the header. The shell and
+championship workspace are connected to it. Other deeper CRUD screens still
+contain hard-coded Russian copy and can be moved to the same language provider
+incrementally.
+
+Expected behavior:
+
+- the language button is always available in the header;
+- selected language persists across reloads;
+- future visible screens should use the shared provider instead of adding new
+  hard-coded English/Russian fragments.
+
 ### FE-DRAFT-014: Full-season generation showed a false connection error
 
 Status: fixed in the current frontend, must not regress.

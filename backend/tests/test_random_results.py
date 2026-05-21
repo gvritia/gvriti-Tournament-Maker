@@ -79,6 +79,17 @@ def create_referee(client: TestClient, headers: dict[str, str]) -> int:
     return int(response.json()["id"])
 
 
+def delete_all_referees(client: TestClient, headers: dict[str, str]) -> None:
+    response = client.get("/api/v1/referees/", headers=headers)
+    assert response.status_code == 200
+    for referee in response.json():
+        delete_response = client.delete(
+            f"/api/v1/referees/{referee['id']}",
+            headers=headers,
+        )
+        assert delete_response.status_code == 204
+
+
 def create_player(
     client: TestClient,
     headers: dict[str, str],
@@ -162,6 +173,8 @@ def setup_random_result_context(
         tournament_type=tournament_type,
     )
     stadium_id = create_stadium(client, headers)
+    if not with_referee:
+        delete_all_referees(client, headers)
     referee_id = create_referee(client, headers) if with_referee else None
     home_team_id = create_team(client, headers, "Home Team")
     away_team_id = create_team(client, headers, "Away Team")

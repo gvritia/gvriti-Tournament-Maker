@@ -148,9 +148,7 @@ def test_season_rollover_reuses_workspace_and_copies_tournaments(
         tournament["season_id"] == next_season["id"]
         for tournament in copied_tournaments
     )
-    assert all(
-        tournament["status"] == "planned" for tournament in copied_tournaments
-    )
+    assert all(tournament["status"] == "planned" for tournament in copied_tournaments)
 
     teams_response = client.get("/api/v1/teams/", headers=headers)
     stadiums_response = client.get("/api/v1/stadiums/", headers=headers)

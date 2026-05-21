@@ -7,10 +7,21 @@ from sqlalchemy.orm import Session
 
 from app.core.constants import PlayerPosition
 from app.models.player import Player
+from app.models.referee import Referee
 from app.models.stadium import Stadium
 from app.models.team import Team
 
 DEFAULT_STADIUM_CAPACITY = 50000
+DEFAULT_STARTER_REFEREES: tuple[str, ...] = (
+    "Alejandro Hernandez",
+    "Ricardo de Burgos",
+    "Jose Luis Munuera",
+    "Cesar Soto",
+    "Jesus Gil",
+    "Javier Alberola",
+    "Miguel Ortiz",
+    "Guillermo Cuadra",
+)
 
 
 @dataclass(frozen=True)
@@ -232,6 +243,8 @@ class StarterDataService:
             select(Team.id).where(Team.owner_id == owner_id).limit(1)
         )
         if existing_team is not None:
+            self._seed_referees_for_owner(owner_id=owner_id)
+            self.db.flush()
             return
 
         for previous_place, club in enumerate(DEFAULT_STARTER_CLUBS, start=1):
@@ -258,6 +271,8 @@ class StarterDataService:
                 )
             )
         self.db.flush()
+        self._seed_referees_for_owner(owner_id=owner_id)
+        self.db.flush()
 
     def _seed_players_for_team(self, *, owner_id: int, team: Team) -> None:
         for player in DEFAULT_STARTER_PLAYERS:
@@ -271,3 +286,13 @@ class StarterDataService:
                     team_id=team.id,
                 )
             )
+
+    def _seed_referees_for_owner(self, *, owner_id: int) -> None:
+        existing_referee = self.db.scalar(
+            select(Referee.id).where(Referee.owner_id == owner_id).limit(1)
+        )
+        if existing_referee is not None:
+            return
+
+        for full_name in DEFAULT_STARTER_REFEREES:
+            self.db.add(Referee(owner_id=owner_id, full_name=full_name))

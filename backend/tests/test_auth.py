@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import verify_password
 from app.models.player import Player
+from app.models.referee import Referee
 from app.models.stadium import Stadium
 from app.models.team import Team
 from app.models.user import User
@@ -11,6 +12,7 @@ from app.repositories.user import UserRepository
 from app.services.starter_data_service import (
     DEFAULT_STARTER_CLUBS,
     DEFAULT_STARTER_PLAYERS,
+    DEFAULT_STARTER_REFEREES,
 )
 
 
@@ -74,6 +76,13 @@ def test_register_creates_user_with_hashed_password(
         ]
         assert len(goalkeepers) == 2
         assert len(field_players) == 16
+
+    referees = list(
+        db_session.scalars(
+            select(Referee).where(Referee.owner_id == user.id).order_by(Referee.id)
+        )
+    )
+    assert [referee.full_name for referee in referees] == list(DEFAULT_STARTER_REFEREES)
 
 
 def test_register_duplicate_email_returns_conflict(client: TestClient) -> None:

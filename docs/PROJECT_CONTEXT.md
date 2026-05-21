@@ -39,9 +39,10 @@ checks must include both championship and cup matches.
 - `MatchEvent`: match protocol event such as goal, assist, save, yellow card, or
   red card.
 - `PlayerSeasonStats`: recalculated player totals by season.
-- New organizer accounts receive starter LaLiga team, player, and home-stadium
-  data with club emblem URLs so the workspace is usable immediately. Demo seed
-  data can also be imported from parsed LaLiga CSV files for clubs and squads.
+- New organizer accounts receive starter LaLiga team, player, home-stadium, and
+  referee data with club emblem URLs so the workspace is usable immediately.
+  Demo seed data can also be imported from parsed LaLiga CSV files for clubs
+  and squads.
 
 All subject-area entities except `User` are owned by one organizer through
 `owner_id`. API reads and writes always resolve these entities through the
@@ -183,7 +184,8 @@ current authenticated user.
   by team, tournament, and date range.
 - Cup bracket view.
 - Demo data seeding from parsed club and squad CSV files.
-- Starter team, player, and home-stadium data after organizer registration.
+- Starter team, player, home-stadium, and referee data after organizer
+  registration.
 - Season rollover that creates a next season and optionally copies tournaments
   while reusing the organizer's teams, players, stadiums, and referees.
 - User-scoped data isolation for all domain entities and derived tables.
@@ -234,10 +236,10 @@ user's `owner_id` scope, including linked-resource validation and derived
 standings/statistics reads.
 The backend also includes starter data creation for newly registered organizers:
 20 LaLiga teams are created with home stadiums, previous-season places, manager
-names, `emblem_url` logo links, and 18 starter players per team. The starter
-players include two goalkeepers and sixteen field players so roster pages,
-lineup generation, protocol generation, and follow-up matches after
-disciplinary suspensions can be tested immediately. The demo seed
+names, `emblem_url` logo links, 18 starter players per team, and a starter
+referee pool. The starter players include two goalkeepers and sixteen field
+players so roster pages, lineup generation, protocol generation, and follow-up
+matches after disciplinary suspensions can be tested immediately. The demo seed
 command imports parsed LaLiga club and squad CSV files, creates or reuses a demo
 organizer account, and attaches the demo season, championship, cup, teams,
 stadiums, players, referees, and cup semifinal fixtures to that user, with an

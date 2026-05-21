@@ -167,6 +167,10 @@ button:disabled {
   gap: 0.75rem;
 }
 
+.language-toggle {
+  min-width: 4.5rem;
+}
+
 .content {
   width: min(100%, 1360px);
   margin: 0 auto;
@@ -521,6 +525,53 @@ button:disabled {
   gap: 0.5rem;
 }
 
+.progress-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  border: 1px solid rgba(78, 161, 255, 0.28);
+  border-radius: 8px;
+  background: rgba(78, 161, 255, 0.08);
+  padding: 1rem;
+}
+
+.progress-panel-done {
+  border-color: rgba(42, 201, 127, 0.32);
+  background: rgba(42, 201, 127, 0.08);
+}
+
+.progress-panel-error {
+  border-color: rgba(239, 91, 91, 0.36);
+  background: rgba(239, 91, 91, 0.1);
+}
+
+.progress-bar {
+  height: 0.7rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), var(--green));
+  transition: width 240ms ease;
+}
+
+.progress-panel-error .progress-fill {
+  background: var(--red);
+}
+
+.progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 .inline-form {
   display: grid;
   gap: 0.85rem;
@@ -686,6 +737,7 @@ button:disabled {
 
   .section-head,
   .table-meta,
+  .progress-meta,
   .team-hero,
   .match-detail-head {
     align-items: flex-start;

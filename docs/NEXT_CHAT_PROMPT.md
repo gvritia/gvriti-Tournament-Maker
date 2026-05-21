@@ -41,7 +41,7 @@ C:\Users\user\PycharmProjects\gvriti - Tournament Maker
 - CRUD: seasons, teams, players, stadiums, referees, tournaments, matches.
 - Teams имеют optional `emblem_url`.
 - Новые пользователи получают 20 стартовых команд, 360 стартовых игроков,
-  20 домашних стадионов и logo URL.
+  20 домашних стадионов, starter pool судей и logo URL.
 - Match actions: reschedule, assign referee, ticket price, delete.
 - Finished matches нельзя редактировать обычными действиями.
 - Championship schedule generation:
@@ -78,6 +78,10 @@ C:\Users\user\PycharmProjects\gvriti - Tournament Maker
   - logout очищает token и TanStack Query cache.
 - Protected workspace под `/app/*`.
 - Dashboard грузит реальные user-scoped seasons, teams, matches.
+- Header имеет переключатель RU/EN; выбранный язык хранится в localStorage.
+- Shell и championship workspace подключены к language provider.
+- Championship full-season simulation показывает in-page progress panel после
+  подтверждения и до ответа backend.
 - Fresh user onboarding smoke пройден:
   - регистрация нового пользователя работает;
   - новый пользователь сразу получает 20 команд, 360 игроков, 20 домашних
@@ -217,18 +221,29 @@ C:\Users\user\PycharmProjects\gvriti - Tournament Maker
     for cancelled-match skipping, red-card substitute selection, invalid
     existing lineups, missing goalkeeper, and missing-referee full-season
     rollback/no partial events.
+- 2026-05-21 latest follow-up:
+  - starter/test users now receive starter referees automatically at
+    registration;
+  - negative missing-referee tests explicitly delete the starter referee pool;
+  - header RU/EN toggle added;
+  - championship page has a progress panel for "generate season remainder";
+  - `backend/tests/test_crud.py` was formatted, so full black check now passes.
 - Latest verification:
-  - `.venv\Scripts\python.exe -m pytest backend/tests/test_random_results.py -q`
   - `.venv\Scripts\python.exe -m pytest backend/tests/test_auth.py backend/tests/test_random_results.py -q`
   - `.venv\Scripts\python.exe -m pytest backend/tests/test_lineups.py backend/tests/test_cups.py -q`
   - `.venv\Scripts\python.exe -m ruff check backend/app backend/tests`
-  - `.venv\Scripts\python.exe -m black --check backend/tests/test_random_results.py`
+  - `.venv\Scripts\python.exe -m black --check backend/app backend/tests`
   - `cmd /c npm run build`
   - `cmd /c npm audit`
+  - `docker compose build --pull=false backend`
+  - `docker compose up -d --no-build backend`
   - `docker compose build --pull=false frontend`
   - `docker compose up -d --no-build frontend`
-- Known check note: full `.venv\Scripts\python.exe -m black --check backend/app backend/tests`
-  still fails on pre-existing formatting drift in `backend/tests/test_crud.py`.
+  - live Docker API smoke: new temporary starter user received
+    `20,360,20,8` teams/players/stadiums/referees; temp user cleanup verified.
+  - browser smoke: public shell RU/EN toggle worked and checked viewport had
+    no page-level horizontal overflow; authenticated browser login smoke was
+    blocked by the in-app browser clipboard bridge.
 
 Рекомендуемый следующий маленький шаг:
 1. Прогнать live browser smoke на временном starter user'е для реальных
@@ -244,11 +259,8 @@ C:\Users\user\PycharmProjects\gvriti - Tournament Maker
    - assign referee dropdown содержит demo referees;
    - match create optional referee select содержит demo referees;
    - one-match generate protocol работает для championship и cup матчей.
-3. Если backend StarterDataService должен сидить ещё и судей при
-   регистрации (тогда не нужно ручное создание судьи) — обсудить и
-   реализовать отдельным backend-слоем с тестом в `test_auth.py`. Звёздочка
-   из исходного задания пользователя про CSV-демо для всех пользователей
-   тоже требует отдельного обсуждения; этот слой не трогался.
+3. Продолжить вынос видимых строк в language provider маленькими слоями:
+   CRUD pages, match detail, cup, dashboard.
 4. После frontend-слоя запустить `cmd /c npm run build`, `cmd /c npm audit`;
    если менялся Docker-served frontend, выполнить
    `docker compose build --pull=false frontend` и

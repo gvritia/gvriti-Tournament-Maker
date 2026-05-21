@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom"
 import { AppShell } from "../components/AppShell";
 import { AuthProvider } from "../features/auth/AuthProvider";
 import { ProtectedRoute } from "../features/auth/ProtectedRoute";
+import { LanguageProvider } from "../features/i18n/LanguageProvider";
 import { AuthPage } from "../pages/AuthPage";
 import {
   ChampionshipPage,
@@ -77,9 +78,11 @@ const router = createBrowserRouter([
 
 export function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 
