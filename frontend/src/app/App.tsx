@@ -1,4 +1,9 @@
-import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  createHashRouter,
+  Navigate,
+  RouterProvider,
+} from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { AuthProvider } from "../features/auth/AuthProvider";
 import { ProtectedRoute } from "../features/auth/ProtectedRoute";
@@ -31,7 +36,14 @@ import { WorkspacePlayersCrudPage } from "../pages/WorkspacePlayersCrudPage";
 import { WorkspaceTeamsCrudPage } from "../pages/WorkspaceTeamsCrudPage";
 import { WorkspaceTournamentsCrudPage } from "../pages/WorkspaceTournamentsCrudPage";
 
-const router = createBrowserRouter([
+// GitHub Pages hosts the site under a subpath and cannot serve unknown
+// routes. Hash routing keeps every deep link reachable on Pages and adds no
+// extra config. Locally and inside Docker we still use a normal browser
+// router with the configured `base` from index.html.
+const useHashRouter = import.meta.env.VITE_USE_HASH_ROUTER === "true";
+const createRouter = useHashRouter ? createHashRouter : createBrowserRouter;
+
+const router = createRouter([
   {
     path: "/",
     element: <AppShell mode="preview" />,

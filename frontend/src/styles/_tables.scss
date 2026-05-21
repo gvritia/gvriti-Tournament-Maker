@@ -1,0 +1,125 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+// =============================================================================
+// Tables, pagination, empty states, loading rows
+// =============================================================================
+
+.table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: t.$radius-md;
+  background: rgba(11, 14, 20, 0.4);
+}
+
+.table-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: t.$space-sm;
+  margin-bottom: t.$space-xs;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.table-meta-bottom {
+  margin-top: t.$space-xs;
+  margin-bottom: 0;
+}
+
+.data-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+
+  th,
+  td {
+    border-bottom: 1px solid var(--border);
+    padding: 0.7rem 0.85rem;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  th {
+    color: var(--muted-strong);
+    background: rgba(255, 255, 255, 0.025);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  tbody tr {
+    transition: background-color 120ms t.$ease-out;
+
+    &:hover {
+      background: rgba(78, 161, 255, 0.04);
+    }
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+.empty-cell {
+  color: var(--muted);
+  text-align: center;
+  padding: t.$space-xl t.$space-md !important;
+  font-style: italic;
+}
+
+// Skeleton row (loading)
+.row-skeleton td {
+  padding: 0.6rem 0.85rem;
+}
+.row-skeleton-bar {
+  display: block;
+  width: 60%;
+  height: 0.85rem;
+  border-radius: t.$radius-sm;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s linear infinite;
+}
+@keyframes skeleton-shimmer {
+  from {
+    background-position: -100% 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
+}
+
+// Pager controls
+.table-pager {
+  display: flex;
+  align-items: center;
+  gap: t.$space-xs;
+}
+
+@include m.breakpoint-down(t.$bp-mobile) {
+  .table-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .table-meta .row-actions,
+  .table-meta .button {
+    width: 100%;
+  }
+}

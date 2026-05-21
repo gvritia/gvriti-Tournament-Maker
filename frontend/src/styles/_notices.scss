@@ -1,0 +1,176 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+// =============================================================================
+// Notice cards, form errors, success states, progress panel
+// =============================================================================
+
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: t.$space-2xs t.$space-xs;
+  align-items: center;
+  color: var(--text-soft);
+  background: rgba(78, 161, 255, 0.07);
+  border: 1px solid rgba(78, 161, 255, 0.22);
+  border-left: 3px solid var(--blue);
+  border-radius: t.$radius-md;
+  padding: t.$space-sm t.$space-md;
+  font-size: 0.92rem;
+
+  strong {
+    color: var(--text);
+  }
+
+  a {
+    color: var(--blue);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+.notice-success {
+  background: rgba(42, 201, 127, 0.08);
+  border-color: rgba(42, 201, 127, 0.28);
+  border-left-color: var(--green);
+}
+
+.notice-warning {
+  background: rgba(245, 185, 66, 0.08);
+  border-color: rgba(245, 185, 66, 0.28);
+  border-left-color: var(--amber);
+}
+
+.notice-danger {
+  background: rgba(239, 91, 91, 0.1);
+  border-color: rgba(239, 91, 91, 0.32);
+  border-left-color: var(--red);
+  color: #ffdada;
+}
+
+.form-error {
+  background: rgba(239, 91, 91, 0.12);
+  color: #ffd1d1;
+  border: 1px solid rgba(239, 91, 91, 0.35);
+  border-radius: t.$radius-md;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.92rem;
+  animation: shake 220ms t.$ease-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+// Progress panel (used for season simulation, generation progress)
+.progress-panel {
+  display: grid;
+  gap: t.$space-sm;
+  margin: t.$space-md 0 0;
+  border: 1px solid rgba(78, 161, 255, 0.28);
+  border-radius: t.$radius-md;
+  background: rgba(78, 161, 255, 0.06);
+  padding: t.$space-md;
+}
+
+.progress-panel-done {
+  border-color: rgba(42, 201, 127, 0.32);
+  background: rgba(42, 201, 127, 0.06);
+}
+
+.progress-panel-error {
+  border-color: rgba(239, 91, 91, 0.36);
+  background: rgba(239, 91, 91, 0.08);
+}
+
+.progress-bar {
+  height: 0.6rem;
+  overflow: hidden;
+  border-radius: t.$radius-pill;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), var(--green));
+  transition: width 240ms t.$ease-out;
+}
+
+.progress-panel-error .progress-fill {
+  background: var(--red);
+}
+
+.progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: t.$space-sm;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.confirmation-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: t.$z-dialog;
+  display: grid;
+  place-items: center;
+  padding: t.$space-md;
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(5px);
+}
+
+.confirmation-dialog {
+  display: grid;
+  gap: t.$space-lg;
+  width: min(100%, 28rem);
+  border: 1px solid var(--border-strong);
+  border-radius: t.$radius-lg;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  padding: t.$space-lg;
+
+  h2 {
+    margin: t.$space-xs 0 0;
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 650;
+    line-height: 1.45;
+  }
+}
+
+.confirmation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: t.$space-sm;
+}
+
+@include m.breakpoint-down(t.$bp-mobile) {
+  .progress-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .confirmation-dialog {
+    padding: t.$space-md;
+  }
+
+  .confirmation-actions {
+    justify-content: stretch;
+
+    .button {
+      flex: 1 1 9rem;
+    }
+  }
+}

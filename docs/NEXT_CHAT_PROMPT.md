@@ -245,7 +245,38 @@ C:\Users\user\PycharmProjects\gvriti - Tournament Maker
     no page-level horizontal overflow; authenticated browser login smoke was
     blocked by the in-app browser clipboard bridge.
 
+Свежий слой 2026-05-21 (SCSS + visual polish + GitHub Pages):
+- `frontend/src/styles` переведена с одного `global.css` на модульный
+  SCSS (`_tokens`, `_mixins`, `_reset`, `_layout`, `_panels`, `_buttons`,
+  `_forms`, `_tables`, `_notices`, `_components`), entry — `global.scss`.
+- В `frontend/package.json` добавлена `sass ^1.83`; перед билдом нужно
+  один раз запустить `cmd /c npm install`.
+- React-структура не менялась, только класс-стили; функционал тот же.
+- Vite получил конфигурируемый `base` и режим `pages`
+  (`npm run build:pages`); `.env.pages` задаёт hash routing,
+  `VITE_BASE_PATH=/gvriti-Tournament-Maker/` и placeholder API URL.
+- `App.tsx` → `createHashRouter` в режиме pages.
+- `AuthProvider` игнорирует `localStorage` токен в режиме pages.
+- `AuthPage` показывает понятный notice в режиме pages.
+- `public/404.html` — SPA fallback, переписывает unknown path на корень.
+- `.github/workflows/frontend-pages.yml` собирает и деплоит SPA на GH
+  Pages. Один раз в репозитории: Settings → Pages → Source = "GitHub
+  Actions".
+- Локальные команды: `cmd /c npm install && cmd /c npm run build` для
+  Docker-сборки и `cmd /c npm run build:pages` для проверки pages-режима
+  до пуша.
+
 Рекомендуемый следующий маленький шаг:
+0. Локально на Windows:
+   - `cd frontend && cmd /c npm install` (поставит `sass`);
+   - `cmd /c npm run build` — обычная Docker-сборка должна пройти;
+   - `cmd /c npm run build:pages` — проверка GH Pages сборки.
+   - Если frontend перебирается под Docker:
+     `docker compose build --pull=false frontend &&
+      docker compose up -d --no-build frontend`.
+0a. В репозитории GitHub: Settings → Pages → Source = "GitHub Actions",
+    затем push в `master`. Через 1–2 минуты сайт будет доступен по
+    `https://gvritia.github.io/gvriti-Tournament-Maker/`.
 1. Прогнать live browser smoke на временном starter user'е для реальных
    UI-level ошибок генерации:
    - existing protocol events;

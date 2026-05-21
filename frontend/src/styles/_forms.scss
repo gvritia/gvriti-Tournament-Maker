@@ -1,0 +1,141 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+// =============================================================================
+// Forms — inputs, selects, inline-form, field grids, errors
+// =============================================================================
+
+input,
+select,
+textarea {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: t.$radius-md;
+  background: var(--bg-elevated);
+  color: var(--text);
+  padding: 0.65rem 0.85rem;
+  width: 100%;
+  font-size: 0.94rem;
+  @include m.focus-ring;
+
+  &::placeholder {
+    color: var(--muted);
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--border-strong);
+  }
+
+  &:focus-visible {
+    background: var(--surface);
+  }
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled,
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-strong) 50%),
+    linear-gradient(135deg, var(--muted-strong) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.1rem) 50%,
+    calc(100% - 0.75rem) 50%;
+  background-size:
+    0.35rem 0.35rem,
+    0.35rem 0.35rem;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+}
+
+option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.field {
+  display: grid;
+  gap: t.$space-2xs + 0.05rem;
+
+  > span:first-child {
+    color: var(--text-soft);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+}
+
+.field-error {
+  color: #ffb3b3;
+  font-size: 0.78rem;
+}
+
+.inline-form {
+  display: grid;
+  gap: t.$space-md;
+  margin-bottom: t.$space-md;
+  @include m.surface(2);
+  padding: t.$space-md t.$space-lg;
+  animation: form-slide 200ms t.$ease-out;
+}
+
+@keyframes form-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: t.$space-sm;
+}
+
+.auth-layout {
+  display: grid;
+  min-height: calc(100vh - 6rem);
+  place-items: center;
+  padding: t.$space-lg;
+}
+
+.auth-panel {
+  display: grid;
+  width: min(100%, 440px);
+  gap: t.$space-sm;
+  @include m.surface;
+  padding: t.$space-xl;
+  box-shadow: var(--shadow-lg);
+
+  h2 {
+    margin-bottom: t.$space-xs;
+  }
+}
+
+.session-panel {
+  display: grid;
+  max-width: 540px;
+  gap: t.$space-sm;
+}
+
+@include m.breakpoint-down(t.$bp-tablet) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@include m.breakpoint-down(t.$bp-mobile) {
+  .auth-panel {
+    padding: t.$space-lg;
+  }
+}

@@ -14,6 +14,13 @@ import type { User } from "../../shared/api/types";
 
 const TOKEN_KEY = "tournament-maker-token";
 
+// On a GitHub Pages public preview build there is no backend, so any
+// JWT still sitting in localStorage from a local Docker session would
+// only generate noisy 401 errors. We force the session to start empty
+// in that mode; the AuthPage already shows a friendly notice instead
+// of letting the user attempt to log in against the placeholder API.
+const IS_PUBLIC_PREVIEW = import.meta.env.VITE_USE_HASH_ROUTER === "true";
+
 type AuthContextValue = {
   token: string | null;
   user: User | null;
@@ -29,7 +36,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
+  const [token, setToken] = useState(() =>
+    IS_PUBLIC_PREVIEW ? null : localStorage.getItem(TOKEN_KEY),
+  );
 
   const clearSession = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);

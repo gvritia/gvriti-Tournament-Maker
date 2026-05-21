@@ -1,0 +1,181 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+// =============================================================================
+// Page surfaces, panels, intros, KPI cards
+// =============================================================================
+
+.page-stack {
+  display: grid;
+  gap: t.$space-md;
+}
+
+.page-grid,
+.split-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: t.$space-md;
+}
+
+.page-grid > .panel:first-child {
+  grid-column: 1 / -1;
+}
+
+.panel,
+.page-intro {
+  @include m.surface;
+  padding: t.$space-md t.$space-lg;
+  box-shadow: var(--shadow-sm);
+}
+
+.page-intro {
+  display: grid;
+  gap: t.$space-2xs;
+  background: linear-gradient(
+    135deg,
+    rgba(78, 161, 255, 0.06) 0%,
+    rgba(16, 20, 27, 0.92) 60%
+  );
+}
+
+.page-intro h2 {
+  font-size: 1.45rem;
+  letter-spacing: -0.01em;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: t.$space-md;
+  margin-bottom: t.$space-md;
+}
+
+.filter-row {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: t.$space-xs;
+}
+
+.filter-row > input,
+.filter-row > select {
+  flex: 1 1 12rem;
+  max-width: 100%;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: t.$space-md;
+}
+
+.metric-card {
+  @include m.surface;
+  padding: t.$space-md;
+  display: grid;
+  gap: t.$space-2xs;
+  position: relative;
+  transition:
+    border-color 160ms t.$ease-out,
+    transform 160ms t.$ease-out;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      rgba(78, 161, 255, 0.05),
+      transparent 50%
+    );
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 160ms t.$ease-out;
+  }
+
+  &:hover {
+    border-color: var(--border-strong);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  span {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  strong {
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.eyebrow {
+  margin: 0 0 t.$space-2xs;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.warning-text {
+  color: var(--amber);
+  font-size: 0.92rem;
+  margin-top: t.$space-xs;
+  padding-top: t.$space-xs;
+  border-top: 1px dashed var(--border);
+}
+
+@include m.breakpoint-down(t.$bp-tablet) {
+  .kpi-grid,
+  .split-grid,
+  .page-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@include m.breakpoint-down(t.$bp-mobile) {
+  .section-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .filter-row,
+  .filter-row > input,
+  .filter-row > select {
+    width: 100%;
+  }
+
+  .kpi-grid {
+    gap: t.$space-sm;
+  }
+
+  .panel,
+  .page-intro {
+    padding: t.$space-md;
+  }
+
+  .metric-card strong {
+    font-size: 1.55rem;
+  }
+}

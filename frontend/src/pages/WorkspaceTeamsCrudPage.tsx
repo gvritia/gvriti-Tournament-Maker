@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { DataTable } from "../components/DataTable";
+import { useConfirmationDialog } from "../components/ConfirmationDialog";
 import { TeamMark } from "../components/TeamMark";
 import { useAuth } from "../features/auth/AuthProvider";
 import type { ApiError } from "../shared/api/client";
@@ -36,6 +37,7 @@ export function WorkspaceTeamsCrudPage() {
   const { token } = useAuth();
   const safeToken = token ?? "";
   const queryClient = useQueryClient();
+  const confirmation = useConfirmationDialog();
   const [search, setSearch] = useState("");
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -140,9 +142,11 @@ export function WorkspaceTeamsCrudPage() {
   }
 
   async function handleDeleteTeam(team: Team) {
-    const confirmed = window.confirm(
-      `Удалить команду "${team.name}"? Связанные стадионы и матчи могут быть затронуты правилами турнира.`,
-    );
+    const confirmed = await confirmation.confirm({
+      message: `Удалить команду "${team.name}"? Связанные стадионы и матчи могут быть затронуты правилами турнира.`,
+      confirmLabel: "Удалить",
+      tone: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -265,6 +269,7 @@ export function WorkspaceTeamsCrudPage() {
           ]}
         />
       </section>
+      {confirmation.dialog}
     </div>
   );
 }

@@ -1,0 +1,48 @@
+@use "tokens" as t;
+
+// =============================================================================
+// Reusable mixins
+// =============================================================================
+
+@mixin focus-ring($color: var(--border-focus)) {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition:
+    box-shadow 140ms t.$ease-out,
+    border-color 140ms t.$ease-out,
+    background-color 140ms t.$ease-out,
+    color 140ms t.$ease-out,
+    transform 140ms t.$ease-out;
+
+  &:focus-visible {
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 3px rgba(78, 161, 255, 0.28);
+    border-color: $color;
+  }
+}
+
+@mixin surface($level: 1) {
+  border: 1px solid var(--border);
+  border-radius: t.$radius-md;
+  background: var(--surface);
+
+  @if $level == 2 {
+    background: var(--surface-2);
+  }
+  @if $level == 3 {
+    background: var(--surface-3);
+  }
+}
+
+@mixin clamp-text($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@mixin breakpoint-down($value) {
+  @media (max-width: $value) {
+    @content;
+  }
+}

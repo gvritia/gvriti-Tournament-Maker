@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { DataTable } from "../components/DataTable";
+import { useConfirmationDialog } from "../components/ConfirmationDialog";
 import { MatchupInline } from "../components/MatchupInline";
 import { TeamInline } from "../components/TeamInline";
 import { useAuth } from "../features/auth/AuthProvider";
@@ -42,6 +43,7 @@ const championshipText: Record<
     createSchedule: string;
     recalculate: string;
     generateSeason: string;
+    confirmSeasonTitle: string;
     confirmSeason: string;
     setupTitle: string;
     setupBody: string;
@@ -101,6 +103,7 @@ const championshipText: Record<
     createSchedule: "Создать календарь",
     recalculate: "Пересчитать таблицу",
     generateSeason: "Сгенерировать остаток сезона",
+    confirmSeasonTitle: "Подтвердите действие",
     confirmSeason:
       "Сгенерировать протоколы для оставшихся незавершённых матчей сезона? Завершённые матчи и матчи с уже заполненным протоколом останутся без изменений.",
     setupTitle: "Нужно подготовить данные.",
@@ -146,11 +149,11 @@ const championshipText: Record<
     seasonGenerated: (count) =>
       `Готово: сгенерированы протоколы для ${count} оставшихся матчей.`,
     progressTitle: "Генерация остатка сезона",
-    progressRunning: "Backend генерирует протоколы и обновляет таблицу.",
+    progressRunning: "Идёт генерация протоколов и обновление таблицы.",
     progressDone: "Генерация завершена.",
     progressError: "Генерация остановилась с ошибкой.",
     progressHint:
-      "Окно можно оставить открытым: данные обновятся автоматически после ответа сервера.",
+      "Окно можно оставить открытым: данные обновятся автоматически после завершения операции.",
     metricLabels: {
       goals: "Голы",
       assists: "Передачи",
@@ -173,6 +176,7 @@ const championshipText: Record<
     createSchedule: "Create schedule",
     recalculate: "Recalculate table",
     generateSeason: "Generate season remainder",
+    confirmSeasonTitle: "Confirm action",
     confirmSeason:
       "Generate protocols for the remaining unfinished season matches? Finished matches and matches that already have a protocol will stay unchanged.",
     setupTitle: "Setup needed.",
@@ -218,11 +222,11 @@ const championshipText: Record<
     seasonGenerated: (count) =>
       `Done: generated protocols for ${count} remaining matches.`,
     progressTitle: "Season remainder generation",
-    progressRunning: "Backend is generating protocols and updating standings.",
+    progressRunning: "Generating protocols and updating standings.",
     progressDone: "Generation finished.",
     progressError: "Generation stopped with an error.",
     progressHint:
-      "You can keep this panel open: data refreshes automatically after the server responds.",
+      "You can keep this panel open: data refreshes automatically when the operation finishes.",
     metricLabels: {
       goals: "Goals",
       assists: "Assists",
@@ -260,6 +264,7 @@ export function WorkspaceChampionshipPage() {
     status: "running" | "done" | "error";
     value: number;
   }>({ isOpen: false, status: "running", value: 0 });
+  const confirmation = useConfirmationDialog();
 
   const seasonsQuery = useQuery({
     queryKey: ["seasons"],
@@ -430,6 +435,29 @@ export function WorkspaceChampionshipPage() {
     }
   }
 
+  function runSeasonGeneration() {
+    setSeasonGenerationProgress({
+      isOpen: true,
+      status: "running",
+      value: 8,
+    });
+    submitAction(() => simulateMutation.mutateAsync());
+  }
+
+  async function requestSeasonGeneration() {
+    const confirmed = await confirmation.confirm({
+      title: text.confirmSeasonTitle,
+      message: text.confirmSeason,
+      confirmLabel: text.generate,
+      cancelLabel: text.cancel,
+      tone: "danger",
+    });
+
+    if (confirmed) {
+      runSeasonGeneration();
+    }
+  }
+
   const canGenerateSchedule = tournamentId > 0 && teams.length >= 2;
   const isWorking =
     generateScheduleMutation.isPending ||
@@ -510,18 +538,7 @@ export function WorkspaceChampionshipPage() {
               className="button button-danger"
               disabled={!seasonId || isWorking}
               type="button"
-              onClick={() => {
-                const confirmed = window.confirm(text.confirmSeason);
-                if (!confirmed) {
-                  return;
-                }
-                setSeasonGenerationProgress({
-                  isOpen: true,
-                  status: "running",
-                  value: 8,
-                });
-                submitAction(() => simulateMutation.mutateAsync());
-              }}
+              onClick={requestSeasonGeneration}
             >
               {text.generateSeason}
             </button>
@@ -564,6 +581,8 @@ export function WorkspaceChampionshipPage() {
           />
         ) : null}
       </section>
+
+      {confirmation.dialog}
 
       <section className="panel">
         <div className="section-head">

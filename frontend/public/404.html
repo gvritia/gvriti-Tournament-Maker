@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tournament Maker — redirecting…</title>
+    <script>
+      // GitHub Pages SPA fallback.
+      // Vite builds a single index.html. When a visitor opens a deep link
+      // like /gvriti-Tournament-Maker/teams directly, GitHub Pages cannot
+      // resolve the file and serves this 404.html. We rewrite the location
+      // to the site root with the original path preserved as a hash, so the
+      // HashRouter inside the bundle can pick it up.
+      (function () {
+        var segments = location.pathname.split("/").filter(Boolean);
+        var basePath = segments.length > 0 ? "/" + segments[0] + "/" : "/";
+        var tail = location.pathname.slice(basePath.length) + location.search;
+        var hash = tail ? "#/" + tail.replace(/^\/+/, "") : "";
+        location.replace(basePath + hash);
+      })();
+    </script>
+  </head>
+  <body>
+    <p style="font-family: system-ui; color: #cbd3df; padding: 2rem;">
+      Перенаправление…
+    </p>
+  </body>
+</html>

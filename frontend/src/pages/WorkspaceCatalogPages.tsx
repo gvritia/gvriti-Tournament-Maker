@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { DataTable } from "../components/DataTable";
+import { useConfirmationDialog } from "../components/ConfirmationDialog";
 import { TeamInline } from "../components/TeamInline";
 import { useAuth } from "../features/auth/AuthProvider";
 import type { ApiError } from "../shared/api/client";
@@ -27,6 +28,7 @@ export function WorkspaceSeasonsPage() {
   const { token } = useAuth();
   const safeToken = token ?? "";
   const queryClient = useQueryClient();
+  const confirmation = useConfirmationDialog();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [editingSeason, setEditingSeason] = useState<Season | null>(null);
@@ -186,9 +188,11 @@ export function WorkspaceSeasonsPage() {
   }
 
   async function handleDeleteSeason(season: Season) {
-    const confirmed = window.confirm(
-      `Удалить сезон "${season.name}"? Связанные турниры и матчи могут быть затронуты правилами турнира.`,
-    );
+    const confirmed = await confirmation.confirm({
+      message: `Удалить сезон "${season.name}"? Связанные турниры и матчи могут быть затронуты правилами турнира.`,
+      confirmLabel: "Удалить",
+      tone: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -332,6 +336,7 @@ export function WorkspaceSeasonsPage() {
           },
         ]}
       />
+      {confirmation.dialog}
     </CatalogPage>
   );
 }
@@ -340,6 +345,7 @@ export function WorkspaceStadiumsPage() {
   const { token } = useAuth();
   const safeToken = token ?? "";
   const queryClient = useQueryClient();
+  const confirmation = useConfirmationDialog();
   const [search, setSearch] = useState("");
   const [editingStadium, setEditingStadium] = useState<Stadium | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -444,9 +450,11 @@ export function WorkspaceStadiumsPage() {
   }
 
   async function handleDeleteStadium(stadium: Stadium) {
-    const confirmed = window.confirm(
-      `Удалить стадион "${stadium.name}"? Матчи и домашняя команда могут быть затронуты правилами турнира.`,
-    );
+    const confirmed = await confirmation.confirm({
+      message: `Удалить стадион "${stadium.name}"? Матчи и домашняя команда могут быть затронуты правилами турнира.`,
+      confirmLabel: "Удалить",
+      tone: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -562,6 +570,7 @@ export function WorkspaceStadiumsPage() {
           },
         ]}
       />
+      {confirmation.dialog}
     </CatalogPage>
   );
 }
@@ -570,6 +579,7 @@ export function WorkspaceRefereesPage() {
   const { token } = useAuth();
   const safeToken = token ?? "";
   const queryClient = useQueryClient();
+  const confirmation = useConfirmationDialog();
   const [search, setSearch] = useState("");
   const [editingReferee, setEditingReferee] = useState<Referee | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -666,9 +676,11 @@ export function WorkspaceRefereesPage() {
   }
 
   async function handleDeleteReferee(referee: Referee) {
-    const confirmed = window.confirm(
-      `Удалить судью "${referee.full_name}"? Это действие нельзя отменить.`,
-    );
+    const confirmed = await confirmation.confirm({
+      message: `Удалить судью "${referee.full_name}"? Это действие нельзя отменить.`,
+      confirmLabel: "Удалить",
+      tone: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -759,6 +771,7 @@ export function WorkspaceRefereesPage() {
           },
         ]}
       />
+      {confirmation.dialog}
     </CatalogPage>
   );
 }

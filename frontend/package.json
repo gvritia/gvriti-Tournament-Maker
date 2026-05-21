@@ -7,6 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "dev:docker": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
+    "build:pages": "tsc -b && vite build --mode pages",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "sass": "^1.83.0",
     "typescript": "^5.9.3",
     "vite": "^7.2.4"
   }

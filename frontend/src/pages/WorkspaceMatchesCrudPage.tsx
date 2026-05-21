@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { DataTable } from "../components/DataTable";
+import { useConfirmationDialog } from "../components/ConfirmationDialog";
 import { MatchupInline } from "../components/MatchupInline";
 import { useAuth } from "../features/auth/AuthProvider";
 import type { ApiError } from "../shared/api/client";
@@ -59,6 +60,7 @@ export function WorkspaceMatchesCrudPage() {
   const { token } = useAuth();
   const safeToken = token ?? "";
   const queryClient = useQueryClient();
+  const confirmation = useConfirmationDialog();
   const [seasonId, setSeasonId] = useState("all");
   const [tournamentId, setTournamentId] = useState("all");
   const [teamId, setTeamId] = useState("all");
@@ -268,9 +270,11 @@ export function WorkspaceMatchesCrudPage() {
   }
 
   async function handleDelete(match: Match) {
-    const confirmed = window.confirm(
-      `Удалить матч "${renderMatchPair(match, teams)}"? Это действие нельзя отменить.`,
-    );
+    const confirmed = await confirmation.confirm({
+      message: `Удалить матч "${renderMatchPair(match, teams)}"? Это действие нельзя отменить.`,
+      confirmLabel: "Удалить",
+      tone: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -529,6 +533,7 @@ export function WorkspaceMatchesCrudPage() {
           ]}
         />
       </section>
+      {confirmation.dialog}
     </div>
   );
 }

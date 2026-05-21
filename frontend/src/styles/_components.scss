@@ -1,0 +1,272 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+// =============================================================================
+// Domain components — team emblem/inline, matchup, bracket, meta-grid
+// =============================================================================
+
+.team-emblem {
+  display: inline-grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: t.$radius-md;
+  background: linear-gradient(135deg, #2c5fa3, #1a2740);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: #eaf3ff;
+  overflow: hidden;
+}
+
+.team-emblem-img {
+  width: 2.3rem;
+  height: 2.3rem;
+  flex: 0 0 auto;
+  border-radius: t.$radius-md;
+  object-fit: cover;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.team-emblem-lg,
+.team-emblem-img.team-emblem-lg {
+  width: 4.5rem;
+  height: 4.5rem;
+  font-size: 1.25rem;
+}
+
+.team-link {
+  display: inline-flex;
+  align-items: center;
+  gap: t.$space-xs;
+  color: var(--text);
+  transition: color 120ms t.$ease-out;
+
+  &:hover {
+    color: var(--blue);
+  }
+}
+
+.team-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.team-inline-name {
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+
+.team-hero,
+.match-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: t.$space-lg;
+}
+
+.matchup-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: t.$space-sm;
+}
+
+.matchup-team {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: t.$space-xs + 0.05rem;
+}
+
+.matchup-team-name {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.matchup-separator {
+  color: var(--muted);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.matchup-inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.matchup-inline-team {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 0.4rem;
+}
+
+.matchup-inline-name {
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+
+.matchup-inline-separator {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: t.$space-xs t.$space-md;
+  margin: t.$space-sm 0;
+  color: var(--text-soft);
+  font-size: 0.92rem;
+}
+
+.match-scoreline {
+  color: var(--blue);
+  font-size: 2.1rem;
+  font-weight: 800;
+  margin: t.$space-xs 0;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+// ----- Cup bracket -----
+.bracket {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: t.$space-md;
+  overflow-x: auto;
+  padding-bottom: t.$space-xs;
+}
+
+.bracket-column {
+  display: grid;
+  gap: t.$space-sm;
+}
+
+.bracket-card {
+  display: grid;
+  gap: t.$space-2xs;
+  min-width: 220px;
+  @include m.surface(2);
+  padding: t.$space-md;
+  position: relative;
+  transition:
+    border-color 140ms t.$ease-out,
+    transform 140ms t.$ease-out;
+
+  span,
+  small {
+    color: var(--muted);
+    font-size: 0.84rem;
+  }
+
+  strong {
+    font-size: 1rem;
+    color: var(--text);
+  }
+
+  &:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+
+  .button {
+    margin-top: t.$space-xs;
+    justify-self: start;
+  }
+}
+
+.champion-card {
+  align-self: center;
+  border-color: rgba(245, 185, 66, 0.32);
+  background: linear-gradient(
+    135deg,
+    rgba(245, 185, 66, 0.1),
+    rgba(16, 20, 27, 0.92) 60%
+  );
+
+  strong {
+    color: var(--amber);
+    font-size: 1.05rem;
+  }
+}
+
+.action-panel {
+  display: grid;
+  align-content: start;
+  gap: t.$space-md;
+}
+
+.auth-link,
+.back-link {
+  color: var(--blue);
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: t.$space-2xs;
+  transition: color 120ms t.$ease-out;
+
+  &:hover {
+    color: #82bcff;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+.back-link {
+  font-size: 0.88rem;
+  color: var(--muted-strong);
+  margin-bottom: t.$space-xs;
+
+  &::before {
+    content: "←";
+    margin-right: t.$space-3xs;
+  }
+
+  &:hover {
+    color: var(--blue);
+  }
+}
+
+@include m.breakpoint-down(t.$bp-mobile) {
+  .team-hero,
+  .match-detail-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .matchup-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .matchup-separator {
+    display: none;
+  }
+
+  .matchup-team-name {
+    font-size: 1.2rem;
+  }
+
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bracket {
+    grid-template-columns: 1fr;
+  }
+}

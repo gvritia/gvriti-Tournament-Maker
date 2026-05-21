@@ -2,6 +2,80 @@
 
 ## 2026-05-21
 
+### Visual Polish, SCSS Migration, GitHub Pages Preview Deploy
+
+- Migrated frontend styles from a single `src/styles/global.css` to a
+  modular SCSS architecture (Dart Sass, modern `@use` syntax). New files:
+  `_tokens.scss` (color/spacing/radius/shadow/animation tokens via CSS
+  variables), `_mixins.scss` (focus-ring, surface, breakpoints),
+  `_reset.scss`, `_layout.scss` (sidebar/topbar/content + mobile drawer),
+  `_panels.scss` (panel, page-intro, KPI cards, section-head),
+  `_buttons.scss` (button + variants, mode chips, status badges),
+  `_forms.scss` (inputs, selects, field grids, auth panel),
+  `_tables.scss` (data-table with sticky thead, hover rows, skeleton row,
+  pager), `_notices.scss` (notice variants, form-error, progress panel),
+  `_components.scss` (team-emblem, matchup, bracket, meta-grid,
+  scoreline). `global.scss` is the new entry; the old `global.css` is
+  preserved as a no-op stub so unknown imports do not 404.
+- `src/main.tsx` now imports `./styles/global.scss`.
+- Added `sass ^1.83` to `frontend/devDependencies` so Vite can compile
+  SCSS on `npm install`.
+- Visual polish without functional changes:
+  - softer dark gradient page background, fixed backdrop;
+  - rounded radii bumped to 10/14 px on cards/panels;
+  - sticky table headers, hover-row highlight, skeleton shimmer for
+    loading rows, tabular numerals in stats tables;
+  - new focus ring (`box-shadow: 0 0 0 3px rgba(78,161,255,0.28)`) on
+    every interactive element;
+  - sidebar: gradient brand mark, active-route left accent stripe and
+    background gradient, mobile drawer slides in with a blurred backdrop;
+  - topbar: sticky, blurred backdrop, ellipsised title, larger
+    min-height;
+  - notice cards have a left accent bar by severity (info/success/
+    warning/danger);
+  - form-error shakes (220 ms) when shown so it gets noticed;
+  - inline-form slides in (200 ms) when toggled;
+  - cup bracket cards lift on hover, champion-card has an amber tint;
+  - native selects get custom caret triangles that match the dark theme;
+  - WebKit scrollbars get a thin transparent track + soft thumb;
+  - page-fade animation on each route transition (220 ms);
+  - status chips now have status-specific border/background pairs for
+    planned/active/finished/cancelled/archived.
+- No component logic changed. All existing class names are preserved,
+  so the React tree did not have to be touched.
+- GitHub Pages public preview deploy:
+  - `frontend/vite.config.ts` now accepts a configurable `base` via
+    `VITE_BASE_PATH` env or `mode === "pages"`. In CI the workflow
+    exposes `GITHUB_REPOSITORY`, so the base path is `/${repoName}/`
+    automatically.
+  - `frontend/.env.pages` sets `VITE_BASE_PATH=/gvriti-Tournament-Maker/`,
+    `VITE_USE_HASH_ROUTER=true`, and a placeholder API URL.
+  - `frontend/package.json` exposes `npm run build:pages` (Vite mode
+    `pages`).
+  - `App.tsx` picks `createHashRouter` when `VITE_USE_HASH_ROUTER ===
+    "true"` and `createBrowserRouter` otherwise. Hash routing makes every
+    deep link reachable on GitHub Pages without a 404.html hack.
+  - `frontend/public/404.html` is still added as a belt-and-braces SPA
+    fallback that rewrites unknown paths to the hash-based root.
+  - `AuthProvider.tsx` skips reading `localStorage` on a public preview
+    build so a stale local JWT does not trigger 401 noise against the
+    placeholder API.
+  - `AuthPage.tsx` swaps the login/register form for a friendly Russian
+    notice when running in public preview mode, with a link back to `/`.
+  - `.github/workflows/frontend-pages.yml` builds the SPA, uploads it as
+    a Pages artifact, and deploys it through `actions/deploy-pages`.
+    Concurrency group `pages` prevents overlapping deploys.
+  - One-time setup the user must do in GitHub: Settings → Pages →
+    "Build and deployment" → Source = "GitHub Actions". After that, every
+    push to `master`/`main` that touches `frontend/**` redeploys.
+- Verification:
+  - static review of every new SCSS module and updated TSX file;
+  - `cmd /c npm install` (to pull in `sass`) and `cmd /c npm run build`
+    were not run in this slice because the local Linux sandbox cannot
+    execute Windows-installed `node_modules`. The user should run both
+    locally after pulling. On the first push of this slice the GitHub
+    Actions workflow will exercise the build in the cloud.
+
 ### Language Toggle And Season Progress Panel
 
 - Added a shared frontend language provider backed by `localStorage`.

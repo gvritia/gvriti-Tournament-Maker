@@ -2,6 +2,47 @@
 
 ## 2026-05-21
 
+### Frontend SCSS Migration And GitHub Pages Preview Deploy
+
+- Frontend-only slice. Backend not touched. Migrated
+  `frontend/src/styles` from a single `global.css` to a modular SCSS
+  architecture (Dart Sass, `@use` syntax): `_tokens.scss`, `_mixins.scss`,
+  `_reset.scss`, `_layout.scss`, `_panels.scss`, `_buttons.scss`,
+  `_forms.scss`, `_tables.scss`, `_notices.scss`, `_components.scss`,
+  joined by `global.scss`. `src/main.tsx` now imports the SCSS entry.
+- Added `sass ^1.83` to `frontend/devDependencies`. The user must run
+  `cmd /c npm install` once locally so Vite picks up the compiler.
+- Visual polish only — no React component logic changed, no class names
+  removed. Notable additions: focus rings on every interactive element,
+  sticky table headers, hover-row tint, skeleton shimmer for loading
+  rows, sidebar active-route accent stripe, animated mobile drawer,
+  blurred sticky topbar, severity-coloured notice cards, shaking
+  form-error, sliding inline-form, hoverable bracket cards,
+  status-specific chip palettes, fade-in route transitions.
+- GitHub Pages public preview deploy:
+  - `frontend/vite.config.ts` accepts a configurable `base` and resolves
+    the repo slug from `GITHUB_REPOSITORY` in CI.
+  - `frontend/.env.pages` configures pages-mode build with hash routing
+    and a placeholder API URL.
+  - `frontend/public/404.html` SPA fallback redirects unknown paths to
+    the hash-based root.
+  - `frontend/src/app/App.tsx` switches to `createHashRouter` when
+    `VITE_USE_HASH_ROUTER === "true"`, so deep links work on GH Pages.
+  - `frontend/src/features/auth/AuthProvider.tsx` ignores any stale
+    `localStorage` token in public-preview mode.
+  - `frontend/src/pages/AuthPage.tsx` replaces login/register forms with
+    a friendly Russian notice in public-preview mode.
+  - `.github/workflows/frontend-pages.yml` builds and deploys the SPA on
+    every push to `master`/`main` touching `frontend/**`. The user must
+    enable Pages in repo settings once (Source = "GitHub Actions").
+- Verification:
+  - static review of every new SCSS module and updated TSX file;
+  - `cmd /c npm install`, `cmd /c npm run build`, and
+    `cmd /c npm run build:pages` were not run in this slice because the
+    local Linux sandbox cannot execute Windows-installed `node_modules`;
+    the user should run these locally. On the first push the GitHub
+    Actions workflow will exercise the build in the cloud.
+
 ### Starter Referees, Language Toggle, And Progress UI
 
 - `StarterDataService` now seeds an idempotent starter referee pool for newly

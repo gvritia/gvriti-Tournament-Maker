@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { DataTable } from "../components/DataTable";
+import { useConfirmationDialog } from "../components/ConfirmationDialog";
 import { TeamInline } from "../components/TeamInline";
 import { useAuth } from "../features/auth/AuthProvider";
 import type { ApiError } from "../shared/api/client";
@@ -36,6 +37,7 @@ export function WorkspacePlayersCrudPage() {
   const { token } = useAuth();
   const safeToken = token ?? "";
   const queryClient = useQueryClient();
+  const confirmation = useConfirmationDialog();
   const [search, setSearch] = useState("");
   const [teamId, setTeamId] = useState("all");
   const [position, setPosition] = useState("all");
@@ -152,9 +154,11 @@ export function WorkspacePlayersCrudPage() {
   }
 
   async function handleDeletePlayer(player: Player) {
-    const confirmed = window.confirm(
-      `Удалить игрока "${player.full_name}"? Составы и протоколы могут заблокировать удаление, если игрок уже используется в матчах.`,
-    );
+    const confirmed = await confirmation.confirm({
+      message: `Удалить игрока "${player.full_name}"? Составы и протоколы могут заблокировать удаление, если игрок уже используется в матчах.`,
+      confirmLabel: "Удалить",
+      tone: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -315,6 +319,7 @@ export function WorkspacePlayersCrudPage() {
           ]}
         />
       </section>
+      {confirmation.dialog}
     </div>
   );
 }

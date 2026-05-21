@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { DataTable } from "../components/DataTable";
+import { useConfirmationDialog } from "../components/ConfirmationDialog";
 import { TeamMark } from "../components/TeamMark";
 import { TeamInline } from "../components/TeamInline";
 import { useAuth } from "../features/auth/AuthProvider";
@@ -49,6 +50,7 @@ export function WorkspaceMatchDetailActionsPage() {
   const { matchId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const confirmation = useConfirmationDialog();
   const safeToken = token ?? "";
   const numericMatchId = Number(matchId);
   const isValidMatchId = Number.isInteger(numericMatchId) && numericMatchId > 0;
@@ -340,9 +342,11 @@ export function WorkspaceMatchDetailActionsPage() {
   }
 
   async function handleDeleteLineup(lineup: MatchLineup) {
-    const confirmed = window.confirm(
-      "Убрать этого игрока из состава на матч?",
-    );
+    const confirmed = await confirmation.confirm({
+      message: "Убрать этого игрока из состава на матч?",
+      confirmLabel: "Убрать",
+      tone: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -358,7 +362,11 @@ export function WorkspaceMatchDetailActionsPage() {
   }
 
   async function handleDeleteEvent(event: MatchEvent) {
-    const confirmed = window.confirm("Удалить это событие протокола?");
+    const confirmed = await confirmation.confirm({
+      message: "Удалить это событие протокола?",
+      confirmLabel: "Удалить",
+      tone: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -377,9 +385,11 @@ export function WorkspaceMatchDetailActionsPage() {
     if (!match) {
       return;
     }
-    const confirmed = window.confirm(
-      `Удалить матч "${renderMatchPair(match, teams)}"? Это действие нельзя отменить.`,
-    );
+    const confirmed = await confirmation.confirm({
+      message: `Удалить матч "${renderMatchPair(match, teams)}"? Это действие нельзя отменить.`,
+      confirmLabel: "Удалить",
+      tone: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -715,6 +725,7 @@ export function WorkspaceMatchDetailActionsPage() {
           <h2>Loading match</h2>
         </section>
       )}
+      {confirmation.dialog}
     </div>
   );
 }

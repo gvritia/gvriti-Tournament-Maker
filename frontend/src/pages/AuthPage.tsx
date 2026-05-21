@@ -47,6 +47,29 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     }
   }
 
+  const isPublicPreview = import.meta.env.VITE_USE_HASH_ROUTER === "true";
+
+  if (isPublicPreview) {
+    return (
+      <div className="auth-layout">
+        <div className="panel auth-panel">
+          <p className="eyebrow">{mode === "login" ? "Login" : "Register"}</p>
+          <h2>{mode === "login" ? "Вход" : "Регистрация"}</h2>
+          <div className="notice notice-warning">
+            <strong>Это публичный просмотр.</strong>
+            <span>
+              Регистрация и вход в этом режиме недоступны. Откройте рабочую
+              версию приложения, чтобы перейти в кабинет организатора.
+            </span>
+          </div>
+          <Link to="/" className="button button-ghost">
+            Назад к просмотру
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="auth-layout">
       <form className="panel auth-panel" onSubmit={handleSubmit}>

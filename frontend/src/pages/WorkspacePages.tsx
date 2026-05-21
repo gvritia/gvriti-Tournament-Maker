@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { DataTable } from "../components/DataTable";
+import { useConfirmationDialog } from "../components/ConfirmationDialog";
 import { MatchupInline } from "../components/MatchupInline";
 import { TeamInline } from "../components/TeamInline";
 import { TeamMark } from "../components/TeamMark";
@@ -205,6 +206,7 @@ export function WorkspaceTeamsPage() {
   const { token } = useAuth();
   const safeToken = token ?? "";
   const queryClient = useQueryClient();
+  const confirmation = useConfirmationDialog();
   const [search, setSearch] = useState("");
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -316,9 +318,11 @@ export function WorkspaceTeamsPage() {
   }
 
   async function handleDeleteTeam(team: Team) {
-    const confirmed = window.confirm(
-      `Удалить команду "${team.name}"? Связанные стадионы и матчи могут быть затронуты правилами турнира.`,
-    );
+    const confirmed = await confirmation.confirm({
+      message: `Удалить команду "${team.name}"? Связанные стадионы и матчи могут быть затронуты правилами турнира.`,
+      confirmLabel: "Удалить",
+      tone: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -436,6 +440,7 @@ export function WorkspaceTeamsPage() {
           ]}
         />
       </section>
+      {confirmation.dialog}
     </div>
   );
 }

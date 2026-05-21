@@ -1,0 +1,96 @@
+// =============================================================================
+// Design tokens
+// Single source of truth for colors, spacing, typography, radius, shadows.
+// Other SCSS modules consume tokens through CSS custom properties so that
+// runtime themes (and a future light theme) can override them without rebuild.
+// =============================================================================
+
+// ----- Spacing scale (rem based, 4px grid) -----
+$space-3xs: 0.125rem; // 2
+$space-2xs: 0.25rem; //  4
+$space-xs: 0.5rem; //   8
+$space-sm: 0.75rem; // 12
+$space-md: 1rem; //     16
+$space-lg: 1.5rem; //   24
+$space-xl: 2rem; //     32
+$space-2xl: 3rem; //    48
+
+// ----- Radius -----
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 14px;
+$radius-pill: 999px;
+
+// ----- Breakpoints -----
+$bp-mobile: 560px;
+$bp-tablet: 920px;
+
+// ----- Z-index -----
+$z-sidebar: 20;
+$z-topbar: 5;
+$z-backdrop: 15;
+$z-dialog: 30;
+
+// ----- Animation -----
+$ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+$ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+// ----- CSS custom properties (theme) -----
+:root {
+  color-scheme: dark;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+
+  // Surfaces
+  --bg: #07090d;
+  --bg-elevated: #0b0f15;
+  --surface: #10141b;
+  --surface-2: #161b24;
+  --surface-3: #1c2230;
+  --surface-hover: #1f2533;
+
+  // Borders
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-focus: rgba(78, 161, 255, 0.55);
+
+  // Text
+  --text: #f2f5f8;
+  --text-soft: #d7dee8;
+  --muted: #9aa4b2;
+  --muted-strong: #cbd3df;
+
+  // Accents
+  --blue: #4ea1ff;
+  --blue-soft: rgba(78, 161, 255, 0.16);
+  --blue-strong: rgba(78, 161, 255, 0.32);
+  --green: #2ac97f;
+  --green-soft: rgba(42, 201, 127, 0.14);
+  --amber: #f5b942;
+  --amber-soft: rgba(245, 185, 66, 0.14);
+  --red: #ef5b5b;
+  --red-soft: rgba(239, 91, 91, 0.14);
+
+  // Elevations (soft, dark UI friendly)
+  --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.02) inset,
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 18px -8px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.02) inset;
+  --shadow-lg: 0 18px 48px -18px rgba(0, 0, 0, 0.75),
+    0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  --shadow-focus: 0 0 0 3px rgba(78, 161, 255, 0.28);
+
+  // Page background gradient
+  --bg-gradient:
+    radial-gradient(
+      circle at top left,
+      rgba(78, 161, 255, 0.1),
+      transparent 30rem
+    ),
+    radial-gradient(
+      circle at 80% -10%,
+      rgba(42, 201, 127, 0.05),
+      transparent 28rem
+    );
+}
