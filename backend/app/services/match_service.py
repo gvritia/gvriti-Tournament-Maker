@@ -108,9 +108,12 @@ class MatchService:
 
     def update_match(self, match_id: int, payload: MatchUpdate) -> Match:
         match = self.get_match(match_id)
+        self._ensure_match_can_be_changed(match)
         data = payload.model_dump(exclude_unset=True)
 
         self._validate_required_update_fields(data)
+        if data.get("status") == MatchStatus.FINISHED:
+            raise BusinessRuleError("Use the finish endpoint to finish a match.")
         if "stadium_id" in data:
             self._get_stadium(data["stadium_id"])
         if data.get("referee_id") is not None:
@@ -144,11 +147,13 @@ class MatchService:
 
     def delete_match(self, match_id: int) -> None:
         match = self.get_match(match_id)
+        self._ensure_match_can_be_changed(match)
         self.matches.delete(match)
         self.matches.db.commit()
 
     def assign_referee(self, match_id: int, referee_id: int) -> Match:
         match = self.get_match(match_id)
+        self._ensure_match_can_be_changed(match)
         self._get_referee(referee_id)
         self.validation.ensure_referee_is_available(
             referee_id=referee_id,
@@ -160,6 +165,7 @@ class MatchService:
 
     def reschedule_match(self, match_id: int, match_datetime: datetime) -> Match:
         match = self.get_match(match_id)
+        self._ensure_match_can_be_changed(match)
         self._validate_calendar(
             home_team_id=match.home_team_id,
             away_team_id=match.away_team_id,
@@ -177,6 +183,7 @@ class MatchService:
 
     def set_manual_ticket_price(self, match_id: int, ticket_price: Decimal) -> Match:
         match = self.get_match(match_id)
+        self._ensure_match_can_be_changed(match)
         match.ticket_price = ticket_price.quantize(TICKET_PRICE_QUANT)
         self._sync_income(match)
         return self._commit_match(match, "Could not update match ticket price.")
@@ -234,6 +241,10 @@ class MatchService:
             match_datetime=match_datetime,
             exclude_match_id=exclude_match_id,
         )
+
+    def _ensure_match_can_be_changed(self, match: Match) -> None:
+        if match.status == MatchStatus.FINISHED:
+            raise BusinessRuleError("Finished match cannot be edited or deleted.")
 
     def _validate_required_update_fields(self, data: dict[str, object]) -> None:
         for field in ("stadium_id", "match_datetime", "status", "round_number"):

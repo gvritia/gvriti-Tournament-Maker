@@ -13,3 +13,8 @@ class RefereeRepository(BaseRepository[Referee]):
         statement = select(Referee).where(Referee.full_name == full_name)
         statement = self._filter_owner(statement)
         return self.db.scalar(statement)
+
+    def list_all_ordered(self) -> list[Referee]:
+        statement = select(Referee).order_by(Referee.id)
+        statement = self._filter_owner(statement)
+        return list(self.db.scalars(statement).all())

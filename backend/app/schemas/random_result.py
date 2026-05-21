@@ -11,3 +11,9 @@ class RandomResultGenerate(BaseModel):
 class RandomResultRead(BaseModel):
     match: MatchRead
     events: list[MatchEventRead]
+
+
+class RandomSeasonResultRead(BaseModel):
+    season_id: int
+    generated_count: int
+    results: list[RandomResultRead]

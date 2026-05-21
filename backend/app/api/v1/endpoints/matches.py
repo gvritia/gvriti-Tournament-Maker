@@ -123,7 +123,7 @@ def delete_match(
 ) -> None:
     try:
         get_match_service(db, current_user.id).delete_match(match_id)
-    except NotFoundError as exc:
+    except (BusinessRuleError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc
 
 

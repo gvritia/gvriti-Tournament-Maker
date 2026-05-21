@@ -80,6 +80,133 @@ def test_season_crud_and_conflicts(client: TestClient) -> None:
     )
 
 
+def test_season_rollover_reuses_workspace_and_copies_tournaments(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+
+    source_response = client.post(
+        "/api/v1/seasons/",
+        json={
+            "name": "2026/2027",
+            "start_date": "2026-07-01",
+            "end_date": "2027-05-31",
+            "status": "finished",
+        },
+        headers=headers,
+    )
+    source_season_id = source_response.json()["id"]
+    championship_response = client.post(
+        "/api/v1/tournaments/",
+        json={
+            "season_id": source_season_id,
+            "name": "Championship",
+            "type": "championship",
+            "status": "finished",
+        },
+        headers=headers,
+    )
+    cup_response = client.post(
+        "/api/v1/tournaments/",
+        json={
+            "season_id": source_season_id,
+            "name": "Cup",
+            "type": "cup",
+            "status": "finished",
+        },
+        headers=headers,
+    )
+    assert championship_response.status_code == 201
+    assert cup_response.status_code == 201
+
+    rollover_response = client.post(
+        f"/api/v1/seasons/{source_season_id}/rollover",
+        json={
+            "name": "2027/2028",
+            "start_date": "2027-07-01",
+            "end_date": "2028-05-31",
+            "copy_tournaments": True,
+        },
+        headers=headers,
+    )
+
+    assert rollover_response.status_code == 201
+    payload = rollover_response.json()
+    next_season = payload["season"]
+    copied_tournaments = payload["tournaments"]
+    assert next_season["name"] == "2027/2028"
+    assert next_season["status"] == "planned"
+    assert {tournament["name"] for tournament in copied_tournaments} == {
+        "Championship",
+        "Cup",
+    }
+    assert {tournament["type"] for tournament in copied_tournaments} == {
+        "championship",
+        "cup",
+    }
+    assert all(
+        tournament["season_id"] == next_season["id"]
+        for tournament in copied_tournaments
+    )
+    assert all(
+        tournament["status"] == "planned" for tournament in copied_tournaments
+    )
+
+    teams_response = client.get("/api/v1/teams/", headers=headers)
+    stadiums_response = client.get("/api/v1/stadiums/", headers=headers)
+    assert len(teams_response.json()) == 20
+    assert len(stadiums_response.json()) == 20
+
+    duplicate_response = client.post(
+        f"/api/v1/seasons/{source_season_id}/rollover",
+        json={
+            "name": "2027/2028",
+            "start_date": "2027-07-01",
+            "end_date": "2028-05-31",
+        },
+        headers=headers,
+    )
+    assert duplicate_response.status_code == 409
+
+
+def test_season_rollover_can_skip_tournament_copy(client: TestClient) -> None:
+    headers = auth_headers(client)
+
+    source_response = client.post(
+        "/api/v1/seasons/",
+        json={
+            "name": "2026/2027",
+            "start_date": "2026-07-01",
+            "end_date": "2027-05-31",
+        },
+        headers=headers,
+    )
+    source_season_id = source_response.json()["id"]
+    client.post(
+        "/api/v1/tournaments/",
+        json={
+            "season_id": source_season_id,
+            "name": "Championship",
+            "type": "championship",
+        },
+        headers=headers,
+    )
+
+    rollover_response = client.post(
+        f"/api/v1/seasons/{source_season_id}/rollover",
+        json={
+            "name": "2027/2028",
+            "start_date": "2027-07-01",
+            "end_date": "2028-05-31",
+            "copy_tournaments": False,
+        },
+        headers=headers,
+    )
+
+    assert rollover_response.status_code == 201
+    assert rollover_response.json()["tournaments"] == []
+
+
 def test_team_crud(client: TestClient) -> None:
     headers = auth_headers(client)
 
@@ -89,12 +216,14 @@ def test_team_crud(client: TestClient) -> None:
             "name": "Dinamo",
             "city": "Moscow",
             "manager_name": "Ivan Petrov",
+            "emblem_url": "https://example.com/dinamo.png",
             "previous_season_place": 2,
         },
         headers=headers,
     )
 
     assert create_response.status_code == 201
+    assert create_response.json()["emblem_url"] == "https://example.com/dinamo.png"
     team_id = create_response.json()["id"]
 
     duplicate_response = client.post(
@@ -106,11 +235,22 @@ def test_team_crud(client: TestClient) -> None:
 
     update_response = client.patch(
         f"/api/v1/teams/{team_id}",
-        json={"city": "Saint Petersburg"},
+        json={
+            "city": "Saint Petersburg",
+            "emblem_url": "https://example.com/dinamo-new.png",
+        },
         headers=headers,
     )
     assert update_response.status_code == 200
     assert update_response.json()["city"] == "Saint Petersburg"
+    assert update_response.json()["emblem_url"] == "https://example.com/dinamo-new.png"
+
+    invalid_emblem_response = client.patch(
+        f"/api/v1/teams/{team_id}",
+        json={"emblem_url": "not-a-url"},
+        headers=headers,
+    )
+    assert invalid_emblem_response.status_code == 422
 
     assert client.delete(f"/api/v1/teams/{team_id}", headers=headers).status_code == 204
     assert client.get(f"/api/v1/teams/{team_id}", headers=headers).status_code == 404

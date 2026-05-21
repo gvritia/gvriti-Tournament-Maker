@@ -3,6 +3,7 @@ from datetime import date
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core.constants import SeasonStatus
+from app.schemas.tournament import TournamentRead
 
 
 class SeasonBase(BaseModel):
@@ -35,3 +36,12 @@ class SeasonRead(SeasonBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SeasonRolloverCreate(SeasonBase):
+    copy_tournaments: bool = True
+
+
+class SeasonRolloverRead(BaseModel):
+    season: SeasonRead
+    tournaments: list[TournamentRead]

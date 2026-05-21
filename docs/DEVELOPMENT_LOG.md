@@ -1,5 +1,240 @@
 # Development Log
 
+## 2026-05-21
+
+### Generation Smoke Stabilization And Regression Tests
+
+- Frontend API requests now support per-action timeouts. Long-running generation
+  actions use longer timeouts:
+  - one-match protocol generation: 30 seconds;
+  - championship schedule and cup semifinal generation: 60 seconds;
+  - full-season protocol generation: 120 seconds.
+- This fixes the UI symptom where full-season generation could show a false
+  connection error while the backend continued and finished the operation.
+- Verified the running demo API returns 8 demo referees for `demo@example.com`.
+- Added backend regression coverage for:
+  - season generation skipping cancelled matches;
+  - next-match protocol generation using substitute players after a red-card
+    suspension;
+  - invalid existing lineups blocking protocol generation clearly;
+  - missing goalkeepers blocking protocol generation clearly;
+  - missing referees blocking full-season generation without partial protocol
+    writes.
+- Verification:
+  - `.venv\Scripts\python.exe -m pytest backend/tests/test_random_results.py -q`
+  - `.venv\Scripts\python.exe -m pytest backend/tests/test_auth.py backend/tests/test_random_results.py -q`
+  - `.venv\Scripts\python.exe -m pytest backend/tests/test_lineups.py backend/tests/test_cups.py -q`
+  - `.venv\Scripts\python.exe -m ruff check backend/app backend/tests`
+  - `.venv\Scripts\python.exe -m black --check backend/tests/test_random_results.py`
+  - `cmd /c npm run build`
+  - `cmd /c npm audit`
+  - `docker compose build --pull=false frontend`
+  - `docker compose up -d --no-build frontend`
+- Note: full `black --check backend/app backend/tests` still reports
+  pre-existing formatting drift in `backend/tests/test_crud.py`; this slice did
+  not reformat that unrelated file.
+
+### Match Detail Protocol Generation Error UX
+
+- No backend changes in this slice. Static analysis only:
+  - `RandomResultService` continues to auto-assign an available referee,
+    auto-generate missing starting lineups with exactly one goalkeeper, and
+    refuse only finished/cancelled/already-protocolled matches when called as
+    single-match generation.
+  - `RandomResultService._should_generate_in_season` continues to skip
+    finished, cancelled, and already-protocolled matches during full-season
+    simulation.
+  - `CupService._find_available_match_datetime` continues to search forward
+    up to 120 days for a free `match_datetime` so a same-day or weekly limit
+    conflict shifts the semifinal forward rather than failing.
+  - `LineupService._select_players_for_generated_lineup` continues to drop
+    suspended players and refill from eligible teammates.
+  - `StarterDataService` continues to seed 18 players per team (2 GK + 16
+    field) but does not seed starter referees. Demo seed seeds 8 referees via
+    `_upsert_referees`.
+- Frontend UX changes (see `docs/FRONTEND_DEVELOPMENT_LOG.md`) make a
+  starter user's missing-referee state visible before the failing backend
+  call, and surface the `400/409` protocol generation errors on
+  `/app/matches/:matchId` instead of swallowing them.
+- Verification:
+  - static analysis only;
+  - `.venv\Scripts\python.exe -m pytest`, `ruff`, and `black` were not run
+    in this slice because the slice did not change backend code; the user
+    should still run the standard backend command set after pulling to be
+    safe.
+
+## 2026-05-17
+
+### Starter Squad Depth For Protocol Generation
+
+- Expanded starter player data for newly registered organizers from 11 to 18
+  players per team.
+- Each starter team now receives two goalkeepers and sixteen field players, so
+  protocol generation still has enough eligible field players after normal
+  one-match suspensions from red cards or accumulated yellow cards.
+- Backfilled the running Docker PostgreSQL starter/test accounts that had 20
+  starter teams and 220 players up to 360 players. Demo data with 675 imported
+  real squad players was left unchanged.
+- Verified:
+  - `.venv\Scripts\python.exe -m pytest backend/tests/test_auth.py -q`
+  - `.venv\Scripts\python.exe -m pytest backend/tests/test_random_results.py -q`
+  - `.venv\Scripts\python.exe -m ruff check backend/app/services/starter_data_service.py backend/tests/test_auth.py`
+  - `.venv\Scripts\python.exe -m black --check backend/app/services/starter_data_service.py backend/tests/test_auth.py`
+  - `docker compose build --pull=false backend`
+  - `docker compose up -d --no-build backend`
+  - live Docker API smoke: newly registered user received 360 players, a
+    second match protocol generated successfully after a red-card suspension in
+    the previous match, and the suspended player was not selected; the
+    temporary user was deleted.
+
+### Season Simulation Remaining Matches
+
+- Changed full-season protocol generation so it can continue after some season
+  matches are already finished.
+- Season simulation now skips finished matches, cancelled matches, and matches
+  that already have protocol events, then generates protocols/results only for
+  the remaining clean matches in one transaction.
+- Existing one-match generation remains strict: it still rejects finished,
+  cancelled, or already-protocolled matches.
+- Updated the championship UI confirmation/success text so users see that the
+  action generates remaining unfinished matches and leaves existing results
+  unchanged.
+- Added regression tests for skipping finished matches and skipping matches
+  with existing protocol events while still generating the rest.
+- Verified:
+  - `.venv\Scripts\python.exe -m pytest backend/tests/test_random_results.py -q`
+  - `.venv\Scripts\python.exe -m ruff check backend/app/services/random_result_service.py backend/tests/test_random_results.py`
+  - `.venv\Scripts\python.exe -m black --check backend/app/services/random_result_service.py backend/tests/test_random_results.py`
+  - `cmd /c npm run build`
+  - `cmd /c npm audit`
+  - `docker compose build --pull=false backend frontend`
+  - `docker compose up -d --no-build backend frontend`
+  - live Docker API smoke: one already-finished match was skipped, one
+    remaining match was generated and finished, then the temporary user was
+    deleted.
+
+### Cup Semifinal Auto-Scheduling
+
+- Fixed cup semifinal generation so selected semifinal datetimes are treated as
+  preferred slots instead of hard failures.
+- `CupService` now searches forward from each requested semifinal datetime and
+  uses the nearest date at the same time that satisfies the team one-match-per-
+  day and two-matches-per-week limits.
+- Added regression coverage for moving a semifinal away from a same-day
+  conflict and for moving it past a weekly match-limit conflict.
+- Added a frontend-friendly translation for the rare case where no available
+  cup match date is found during the search window.
+- Verified:
+  - `.venv\Scripts\python.exe -m pytest backend/tests/test_cups.py -q`
+  - `.venv\Scripts\python.exe -m ruff check backend/app/services/cup_service.py backend/tests/test_cups.py`
+  - `.venv\Scripts\python.exe -m black --check backend/app/services/cup_service.py backend/tests/test_cups.py`
+  - `cmd /c npm run build`
+  - `cmd /c npm audit`
+  - `docker compose build --pull=false backend frontend`
+  - `docker compose up -d --no-build backend frontend`
+  - live Docker API smoke: cup semifinal generation returned `201 Created` and
+    moved a conflicting preferred semifinal date to the next valid day, then
+    the temporary user was deleted.
+
+### Starter Players For New Organizers
+
+- Expanded starter data for newly registered organizers so the backend now
+  creates starter players for each starter LaLiga team, in addition to teams,
+  stadiums, previous-season places, manager names, and logo URLs.
+- Each starter team now receives two goalkeepers and sixteen field players,
+  making the players page, lineup generation, and protocol generation usable
+  immediately without a separate demo CSV import.
+- Updated the auth registration test to verify starter player creation.
+- Backfilled the running Docker PostgreSQL test data for existing starter-style
+  accounts that had 20 teams and zero players; demo data with imported real
+  squads was left unchanged.
+- Updated the frontend dashboard onboarding notice so it mentions starter
+  players as part of the preloaded workspace data.
+- Verified:
+  - `.venv\Scripts\python.exe -m pytest backend/tests/test_auth.py -q`
+  - `.venv\Scripts\python.exe -m pytest backend/tests/test_auth.py backend/tests/test_crud.py backend/tests/test_owner_scope.py backend/tests/test_lineups.py backend/tests/test_random_results.py -q`
+  - `.venv\Scripts\python.exe -m ruff check backend/app/services/starter_data_service.py backend/tests/test_auth.py backend/tests/test_random_results.py`
+  - `.venv\Scripts\python.exe -m black --check backend/app/services/starter_data_service.py backend/tests/test_auth.py backend/tests/test_random_results.py`
+  - `docker compose build --pull=false backend`
+  - `docker compose up -d --no-build backend`
+  - `cmd /c npm run build`
+  - `cmd /c npm audit`
+  - `docker compose build --pull=false frontend`
+  - `docker compose up -d --no-build frontend`
+  - live Docker API smoke: newly registered user received 20 teams and 360
+    players, then the temporary user was deleted.
+
+### Backend Acceptance Stabilization
+
+- Added backend protocol-generation endpoints for one-match and full-season
+  simulation:
+  `/matches/{match_id}/generate-protocol` and
+  `/seasons/{season_id}/generate-protocols`.
+- Kept the existing one-match random-result endpoint as a compatible alias and
+  reused the same generate-and-finish business workflow for protocol generation.
+- Expanded protocol generation so it now auto-assigns an available referee when
+  missing, generates missing starting lineups for both teams, requires exactly
+  one goalkeeper in each starting lineup, and generates events from lineup
+  players.
+- Added full-season simulation tests that verify all season matches are
+  finished with protocol events, standings/statistics refresh, JWT protection,
+  and rollback/no partial generation when a match already has protocol events.
+- Added optional `emblem_url` support for teams, with HTTP/HTTPS API validation
+  and an Alembic migration.
+- Added acceptance-focused backend tests for automatic lineup goalkeeper
+  selection, finished-match immutability, direct `PATCH status=finished`
+  rejection, and cup semifinal stadium resolution.
+- Fixed automatic lineup generation so generated starters contain exactly one
+  goalkeeper when an eligible goalkeeper exists. Preferred players are still
+  honored where possible, but extra goalkeepers are moved out of the starting
+  lineup and a goalkeeper is promoted into the starting lineup when needed.
+- Fixed normal match edit workflows so finished matches cannot be patched,
+  rescheduled, assigned a referee, have ticket price changed, or be deleted.
+  Direct generic updates to `status=finished` are rejected; matches must finish
+  through protocol finish or random result generation.
+- Fixed cup semifinal generation so only the two home seeds in `1 vs 4` and
+  `2 vs 3` need stadium resolution. Away seeds no longer need home stadiums for
+  those fixtures when no fallback is supplied.
+- Resolved the current random-result product decision for the MVP: the backend
+  keeps random result as an explicit generate-and-finish action, not a draft
+  workflow.
+- Verified backend with `.venv\Scripts\python.exe -m pytest`,
+  `.venv\Scripts\python.exe -m ruff check .`, and
+  `.venv\Scripts\python.exe -m black --check .`.
+
+### Backend Stabilization And Frontend Rebuild Planning
+
+- Added `docs/ACCEPTANCE_CASES.md` with acceptance checks for auth, startup,
+  ownership isolation, CRUD, matches, ticket prices, schedule generation,
+  lineups, protocol finishing, random results, standings, statistics, cup, and
+  frontend UX.
+- Added `docs/NEXT_CHAT_PROMPT.md` with a ready prompt for the next Codex chat:
+  stabilize backend first with tests, then delete the current frontend draft and
+  rebuild a simpler organizer workspace from scratch.
+- Captured open product decisions around random-result behavior, mandatory
+  lineups/protocol before finishing, starting-lineup rules, and frontend
+  rebuild strategy.
+
+## 2026-05-11
+
+### Frontend First Pass
+
+- Added the first React/Vite/TypeScript frontend in `frontend/` with React
+  Router, TanStack Query, lucide icons, and dark-only plain CSS inspired by the
+  Tournify tournament page reference.
+- Added frontend context documents:
+  `docs/FRONTEND_CONTEXT.md`, `docs/FRONTEND_ARCHITECTURE.md`,
+  `docs/FRONTEND_DEVELOPMENT_LOG.md`, and
+  `docs/FRONTEND_REFERENCE_TOURNIFY.md`.
+- Implemented JWT auth screens, protected app shell, dashboard, CRUD screens,
+  match schedule/detail workflows, lineups, protocol events, championship
+  standings/statistics/schedule generation, and cup bracket/generation screens.
+- Verified frontend build with `npm run build` and dependency audit with
+  `npm audit`.
+- Local dev server runs on `http://127.0.0.1:5173`.
+- Backend was not running during frontend verification, so the real demo login
+  flow remains the next check.
+
 ## 2026-05-10
 
 ### Final Backend Polish
@@ -337,3 +572,51 @@
   `backend/app/repositories/match.py`, `backend/app/schemas/cup.py`, and
   `backend/tests/test_cups.py`.
 - Next steps: implement random result generation or automatic lineup generation.
+
+### Starter Team Data And Club Logos
+
+- Added starter LaLiga team data for newly registered organizers. Registration
+  now creates 20 teams with home stadiums, previous-season places, manager
+  names, and `emblem_url` logo links before the registration transaction
+  commits.
+- Added `StarterDataService` so the starter data stays in the service layer and
+  does not overwrite later user edits if invoked for an owner that already has
+  teams.
+- Extended the demo CSV importer to accept both semicolon-delimited and
+  tab-delimited club/squad files.
+- Added CSV encoding fallback for local parsed files that are not UTF-8.
+- Mapped the demo club CSV `logo` column to `Team.emblem_url` and validate it as
+  an HTTP/HTTPS URL.
+- Added tests for registration starter teams/stadiums, logo import, and
+  tab-delimited club CSV parsing.
+- Updated cup and owner-scope tests that need empty organizer data to clear the
+  starter teams/stadiums explicitly after registration.
+- Changed files: `backend/app/services/auth_service.py`,
+  `backend/app/services/starter_data_service.py`,
+  `backend/app/scripts/seed_demo_data.py`, `backend/tests/test_auth.py`,
+  `backend/tests/test_seed_demo_data.py`, `backend/tests/test_cups.py`, and
+  `backend/tests/test_owner_scope.py`.
+- Verified:
+  - `pytest backend/tests/test_auth.py backend/tests/test_seed_demo_data.py`
+  - `pytest backend/tests`
+  - local demo seed rerun against Docker PostgreSQL; `demo@example.com` now has
+    20 teams with 20 logo URLs.
+
+### Season Rollover
+
+- Added a backend season rollover action that creates a new owner-scoped season
+  from an existing source season.
+- The rollover can copy source tournaments into the new season; copied
+  tournaments keep their name/type and reset to planned status.
+- Teams, players, stadiums, and referees are intentionally reused from the
+  organizer workspace instead of being cloned.
+- Added owner-scope coverage so a user cannot roll over another user's season.
+- Changed files: `backend/app/api/v1/endpoints/seasons.py`,
+  `backend/app/schemas/season.py`,
+  `backend/app/repositories/tournament.py`,
+  `backend/app/services/season_rollover_service.py`,
+  `backend/tests/test_crud.py`, and `backend/tests/test_owner_scope.py`.
+- Verified:
+  - `pytest backend/tests/test_crud.py backend/tests/test_owner_scope.py -q`
+  - live Docker API smoke for demo rollover, followed by cleanup of temporary
+    smoke seasons/tournaments.

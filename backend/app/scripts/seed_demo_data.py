@@ -4,6 +4,7 @@ import argparse
 import csv
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from io import StringIO
 from pathlib import Path
 from typing import TextIO
 
@@ -68,6 +69,7 @@ class ClubSeedRow:
     stadium: str
     stadium_address: str
     coach: str | None
+    logo: str | None
 
 
 @dataclass(frozen=True)
@@ -280,6 +282,7 @@ class DemoDataSeeder:
                 city=club.city,
                 address=club.stadium_address,
                 manager_name=club.coach,
+                emblem_url=club.logo,
                 previous_season_place=previous_place,
             )
             self.db.add(team)
@@ -287,6 +290,7 @@ class DemoDataSeeder:
             team.city = club.city
             team.address = club.stadium_address
             team.manager_name = club.coach
+            team.emblem_url = club.logo
             team.previous_season_place = previous_place
         self.db.flush()
         return team
@@ -501,7 +505,7 @@ class DemoDataSeeder:
 
 def read_clubs_csv(path: Path) -> list[ClubSeedRow]:
     with _open_csv(path) as file:
-        reader = csv.DictReader(file, delimiter=CSV_DELIMITER)
+        reader = csv.DictReader(file, delimiter=_detect_csv_delimiter(file))
         return [
             ClubSeedRow(
                 club_id=_required_int(row, "club_id"),
@@ -510,6 +514,7 @@ def read_clubs_csv(path: Path) -> list[ClubSeedRow]:
                 stadium=_required_text(row, "stadium"),
                 stadium_address=_required_text(row, "stadium_address"),
                 coach=_optional_text(row, "coach"),
+                logo=_optional_http_url(row, "logo"),
             )
             for row in reader
         ]
@@ -517,7 +522,7 @@ def read_clubs_csv(path: Path) -> list[ClubSeedRow]:
 
 def read_squads_csv(path: Path) -> list[PlayerSeedRow]:
     with _open_csv(path) as file:
-        reader = csv.DictReader(file, delimiter=CSV_DELIMITER)
+        reader = csv.DictReader(file, delimiter=_detect_csv_delimiter(file))
         return [
             PlayerSeedRow(
                 club_id=_required_int(row, "club_id"),
@@ -531,7 +536,20 @@ def read_squads_csv(path: Path) -> list[PlayerSeedRow]:
 
 
 def _open_csv(path: Path) -> TextIO:
-    return path.open("r", encoding="utf-8-sig", newline="")
+    for encoding in ("utf-8-sig", "cp1252", "latin-1"):
+        try:
+            return StringIO(path.read_text(encoding=encoding), newline="")
+        except UnicodeDecodeError:
+            continue
+    return StringIO(path.read_text(encoding="utf-8-sig", errors="replace"), newline="")
+
+
+def _detect_csv_delimiter(file: TextIO) -> str:
+    header = file.readline()
+    file.seek(0)
+    if header.count("\t") > header.count(CSV_DELIMITER):
+        return "\t"
+    return CSV_DELIMITER
 
 
 def _required_text(row: dict[str, str], field: str) -> str:
@@ -544,6 +562,15 @@ def _required_text(row: dict[str, str], field: str) -> str:
 def _optional_text(row: dict[str, str], field: str) -> str | None:
     value = (row.get(field) or "").strip()
     return value[:160] if value else None
+
+
+def _optional_http_url(row: dict[str, str], field: str) -> str | None:
+    value = (row.get(field) or "").strip()
+    if not value:
+        return None
+    if not value.startswith(("http://", "https://")):
+        raise ValueError(f"CSV field {field!r} must be an HTTP or HTTPS URL.")
+    return value[:2048]
 
 
 def _required_int(row: dict[str, str], field: str) -> int:

@@ -1,9 +1,17 @@
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import verify_password
+from app.models.player import Player
+from app.models.stadium import Stadium
+from app.models.team import Team
 from app.models.user import User
 from app.repositories.user import UserRepository
+from app.services.starter_data_service import (
+    DEFAULT_STARTER_CLUBS,
+    DEFAULT_STARTER_PLAYERS,
+)
 
 
 def test_register_creates_user_with_hashed_password(
@@ -30,6 +38,42 @@ def test_register_creates_user_with_hashed_password(
     assert user is not None
     assert user.password_hash != "StrongPass123"
     assert verify_password("StrongPass123", user.password_hash)
+
+    teams = list(
+        db_session.scalars(
+            select(Team).where(Team.owner_id == user.id).order_by(Team.id)
+        )
+    )
+    assert len(teams) == len(DEFAULT_STARTER_CLUBS)
+    assert teams[0].name == "Barcelona"
+    assert teams[0].emblem_url == "https://media.api-sports.io/football/teams/529.png"
+    assert teams[-1].name == "Mallorca"
+    assert all(team.emblem_url for team in teams)
+
+    stadiums = list(
+        db_session.scalars(select(Stadium).where(Stadium.owner_id == user.id))
+    )
+    assert len(stadiums) == len(DEFAULT_STARTER_CLUBS)
+    assert {stadium.home_team_id for stadium in stadiums} == {team.id for team in teams}
+
+    players = list(
+        db_session.scalars(
+            select(Player).where(Player.owner_id == user.id).order_by(Player.team_id)
+        )
+    )
+    assert len(players) == len(DEFAULT_STARTER_CLUBS) * len(DEFAULT_STARTER_PLAYERS)
+    assert {player.team_id for player in players} == {team.id for team in teams}
+    for team in teams:
+        team_players = [player for player in players if player.team_id == team.id]
+        assert len(team_players) == len(DEFAULT_STARTER_PLAYERS)
+        goalkeepers = [
+            player for player in team_players if player.position == "goalkeeper"
+        ]
+        field_players = [
+            player for player in team_players if player.position != "goalkeeper"
+        ]
+        assert len(goalkeepers) == 2
+        assert len(field_players) == 16
 
 
 def test_register_duplicate_email_returns_conflict(client: TestClient) -> None:

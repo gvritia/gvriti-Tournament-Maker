@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core.constants import MatchEventType
+from app.core.constants import MatchEventType, PlayerPosition
 from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
 from app.models.match import Match
 from app.models.match_event import MatchEvent
@@ -120,16 +120,24 @@ class LineupService:
         if len(selected_players) < payload.lineup_size:
             raise ConflictError("Not enough eligible players for lineup generation.")
 
+        starting_size = (
+            payload.starting_size
+            if payload.starting_size is not None
+            else min(11, payload.lineup_size)
+        )
+        selected_players = self._apply_starting_goalkeeper_rule(
+            match=match,
+            team_players=team_players,
+            selected_players=selected_players,
+            lineup_size=payload.lineup_size,
+            starting_size=starting_size,
+        )
+
         generated_lineups: list[MatchLineup] = []
         try:
             if payload.replace_existing:
                 for lineup in existing_lineups:
                     self.lineups.delete(lineup)
-            starting_size = (
-                payload.starting_size
-                if payload.starting_size is not None
-                else min(11, payload.lineup_size)
-            )
             for index, player in enumerate(selected_players):
                 lineup = MatchLineup(
                     owner_id=self.lineups.require_owner_id(),
@@ -317,6 +325,89 @@ class LineupService:
             selected_players.append(player)
             selected_player_ids.add(player.id)
         return selected_players[:lineup_size]
+
+    def _apply_starting_goalkeeper_rule(
+        self,
+        *,
+        match: Match,
+        team_players: list[Player],
+        selected_players: list[Player],
+        lineup_size: int,
+        starting_size: int,
+    ) -> list[Player]:
+        if starting_size <= 0:
+            return selected_players
+
+        starting_players = selected_players[:starting_size]
+        starting_goalkeepers = [
+            player for player in starting_players if self._is_goalkeeper(player)
+        ]
+        if len(starting_goalkeepers) == 1:
+            return selected_players
+
+        eligible_players = [
+            player
+            for player in self._sort_lineup_candidates(team_players)
+            if self._is_player_available(player=player, match=match)
+        ]
+        eligible_goalkeepers = [
+            player for player in eligible_players if self._is_goalkeeper(player)
+        ]
+        if not eligible_goalkeepers:
+            return selected_players
+
+        selected_goalkeepers = [
+            player for player in selected_players if self._is_goalkeeper(player)
+        ]
+        goalkeeper = (
+            selected_goalkeepers[0] if selected_goalkeepers else eligible_goalkeepers[0]
+        )
+        selected_player_ids = {player.id for player in selected_players}
+        used_player_ids = {goalkeeper.id}
+
+        field_candidates = [
+            player
+            for player in selected_players
+            if player.id not in used_player_ids and not self._is_goalkeeper(player)
+        ]
+        field_candidates.extend(
+            player
+            for player in eligible_players
+            if player.id not in selected_player_ids
+            and player.id not in used_player_ids
+            and not self._is_goalkeeper(player)
+        )
+
+        required_field_starters = starting_size - 1
+        if len(field_candidates) < required_field_starters:
+            raise ConflictError(
+                "Could not generate a valid starting lineup with exactly one "
+                "goalkeeper."
+            )
+
+        ordered_players = [
+            goalkeeper,
+            *field_candidates[:required_field_starters],
+        ]
+        used_player_ids.update(player.id for player in ordered_players)
+
+        bench_slots = lineup_size - len(ordered_players)
+        bench_candidates = [
+            player for player in selected_players if player.id not in used_player_ids
+        ]
+        bench_candidates.extend(
+            player
+            for player in eligible_players
+            if player.id not in selected_player_ids and player.id not in used_player_ids
+        )
+        ordered_players.extend(bench_candidates[:bench_slots])
+
+        if len(ordered_players) < lineup_size:
+            raise ConflictError("Not enough eligible players for lineup generation.")
+        return ordered_players
+
+    def _is_goalkeeper(self, player: Player) -> bool:
+        return player.position == PlayerPosition.GOALKEEPER
 
     def _sort_lineup_candidates(self, players: list[Player]) -> list[Player]:
         return sorted(

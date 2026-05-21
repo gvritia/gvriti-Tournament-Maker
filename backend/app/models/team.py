@@ -30,6 +30,7 @@ class Team(Base):
     city: Mapped[str] = mapped_column(String(120))
     address: Mapped[str | None] = mapped_column(String(255), nullable=True)
     manager_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    emblem_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     previous_season_place: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

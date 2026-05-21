@@ -5,7 +5,15 @@ from app.api.errors import app_error_to_http_exception
 from app.core import status_codes
 from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
 from app.repositories.season import SeasonRepository
-from app.schemas.season import SeasonCreate, SeasonRead, SeasonUpdate
+from app.repositories.tournament import TournamentRepository
+from app.schemas.season import (
+    SeasonCreate,
+    SeasonRead,
+    SeasonRolloverCreate,
+    SeasonRolloverRead,
+    SeasonUpdate,
+)
+from app.services.season_rollover_service import SeasonRolloverService
 from app.services.season_service import SeasonService
 
 router = APIRouter()
@@ -43,6 +51,31 @@ def create_season(
     try:
         return SeasonService(SeasonRepository(db, current_user.id)).create_season(
             payload
+        )
+    except (BusinessRuleError, ConflictError, NotFoundError) as exc:
+        raise app_error_to_http_exception(exc) from exc
+
+
+@router.post(
+    "/{season_id}/rollover",
+    response_model=SeasonRolloverRead,
+    status_code=status_codes.HTTP_CREATED,
+    responses=status_codes.CRUD_ERROR_RESPONSES,
+)
+def rollover_season(
+    season_id: int,
+    payload: SeasonRolloverCreate,
+    db: DbSession,
+    current_user: CurrentUser,
+) -> SeasonRolloverRead:
+    try:
+        result = SeasonRolloverService(
+            SeasonRepository(db, current_user.id),
+            TournamentRepository(db, current_user.id),
+        ).create_next_season(season_id, payload)
+        return SeasonRolloverRead(
+            season=result.season,
+            tournaments=result.tournaments,
         )
     except (BusinessRuleError, ConflictError, NotFoundError) as exc:
         raise app_error_to_http_exception(exc) from exc

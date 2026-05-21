@@ -5,6 +5,7 @@ from app.core.security import create_access_token, get_password_hash, verify_pas
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.schemas.auth import RegisterRequest, Token
+from app.services.starter_data_service import StarterDataService
 
 
 class AuthService:
@@ -27,6 +28,7 @@ class AuthService:
         )
         try:
             self.users.add(user)
+            StarterDataService(self.users.db).seed_for_new_owner(owner_id=user.id)
             self.users.db.commit()
             self.users.db.refresh(user)
         except IntegrityError as exc:

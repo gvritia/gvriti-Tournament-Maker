@@ -16,3 +16,8 @@ class TournamentRepository(BaseRepository[Tournament]):
         )
         statement = self._filter_owner(statement)
         return self.db.scalar(statement)
+
+    def list_by_season(self, season_id: int) -> list[Tournament]:
+        statement = select(Tournament).where(Tournament.season_id == season_id)
+        statement = self._filter_owner(statement)
+        return list(self.db.scalars(statement).all())

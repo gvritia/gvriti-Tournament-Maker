@@ -27,24 +27,43 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - Missing or foreign owned entities are reported as not found at the API layer.
 - Season, team, stadium, and referee names are unique within one owner scope.
   Tournament names are unique within one owner season.
+- Teams store an optional `emblem_url` string for a club badge; the API validates
+  it as an HTTP/HTTPS URL.
+- `AuthService.register` seeds starter team, player, and home-stadium rows for
+  a newly created organizer through `StarterDataService` before the registration
+  transaction commits. The starter seed only runs when the owner has no teams,
+  so later organizer edits are not overwritten.
+- `SeasonRolloverService` creates a next season from an existing owner-scoped
+  source season. Teams, players, stadiums, and referees are not cloned because
+  they already belong to the organizer workspace; source tournaments may be
+  copied into the new season with planned status.
 - Database writes are committed in services after repository operations.
 - Domain errors use app-level exceptions:
   - `NotFoundError` -> `404`
   - `ConflictError` -> `409`
   - `BusinessRuleError` -> `400`
 - PostgreSQL is exposed on host port `55432` to avoid local PostgreSQL conflicts.
-- Docker Compose can run PostgreSQL alone or build and run the backend service
-  with `alembic upgrade head` executed at container startup.
+- Docker Compose can run PostgreSQL alone, build and run the backend service
+  with `alembic upgrade head` executed at container startup, or run the full
+  local stack including the Vite frontend service.
 - CORS is configured from `CORS_ORIGINS`; local frontend dev servers on ports
   `3000` and `5173` are allowed by default.
 - Alembic is the only supported way to change the database schema.
 - `MatchService` owns match creation, updates, deletion, rescheduling, referee
-  assignment, and manual ticket price changes.
+  assignment, and manual ticket price changes. It rejects normal edit/delete
+  actions for finished matches and does not allow generic `PATCH` updates to
+  set `status=finished`; finish workflows live in protocol/random-result
+  services.
 - `CupService` owns cup semifinal generation, final generation, and bracket
-  reads. Cup matches are regular `Match` rows marked with `CupStage`.
+  reads. Cup matches are regular `Match` rows marked with `CupStage`; semifinal
+  stadium resolution applies to the two home seeds in the seeded pairings.
 - Cup semifinals can be generated from manual team ids or from the top four
   teams ordered by `previous_season_place`; if previous season places are not
   available, manual selection remains the supported path.
+- Cup semifinal datetimes are preferred slots rather than hard requirements.
+  `CupService` searches forward from each requested semifinal datetime and uses
+  the nearest date at the same time that satisfies team daily and weekly
+  calendar limits.
 - Cup final generation is derived from finished semifinal winners and rejects
   unfinished or drawn semifinals.
 - `ScheduleService` validates team match limits across all tournaments using
@@ -65,16 +84,25 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   duplicate lineup numbers, and basic red-card/five-yellow-card suspension
   rules.
 - Automatic lineup generation can prioritize preferred players, skip suspended
-  preferred players, fill open slots with eligible teammates, and optionally
-  replace an existing team lineup.
+  preferred players, fill open slots with eligible teammates, ensure exactly one
+  starting goalkeeper when an eligible goalkeeper exists, and optionally replace
+  an existing team lineup.
 - `MatchProtocolService` owns match event recording and match finishing. It
   validates participant teams, player-team membership, optional assist players,
   mutable match status, and final score consistency with goal events. When a
   match is finished, it refreshes player statistics for the season and refreshes
   championship standings only for championship matches.
-- `RandomResultService` owns random match result generation. It creates bounded
-  protocol events, rejects matches with existing protocol events, finishes the
-  match, and refreshes the same season standings/statistics in one transaction.
+- `RandomResultService` owns the current MVP generate-and-finish random result
+  workflow. It creates bounded protocol events, rejects matches with existing
+  protocol events, finishes the match, and refreshes the same season
+  standings/statistics in one transaction.
+- The same service exposes protocol generation for one match and season
+  simulation. Season simulation skips finished matches, cancelled matches, and
+  matches that already have protocol events, then generates protocols/results
+  for the remaining clean matches in one transaction and rebuilds derived
+  standings/statistics once at the end. Protocol generation also auto-assigns
+  an available referee when missing, generates missing starting lineups, and
+  uses lineup players for generated events.
 - `StandingsService` recalculates `TeamSeasonStats` from finished championship
   matches and orders places by points, goal difference, goals scored, then
   `team_id`. Manual recalculate endpoints remain available, while finish/random
@@ -90,7 +118,9 @@ domain exceptions to HTTP status codes. Business rules belong in services.
   season data through ORM sessions. The command creates or reuses a demo
   organizer account, assigns all seeded rows to that owner, and is idempotent
   for its own seeded season, teams, stadiums, players, referees, and cup
-  semifinal fixtures.
+  semifinal fixtures. The importer accepts semicolon or tab delimiters, maps
+  club `logo` values into `Team.emblem_url`, and falls back from UTF-8 to common
+  single-byte CSV encodings when needed.
 
 ## Implemented Domain Services
 
@@ -108,11 +138,14 @@ domain exceptions to HTTP status codes. Business rules belong in services.
 - `MatchProtocolService`: event listing, creation, update, deletion, and
   finishing matches.
 - `RandomResultService`: bounded random score and protocol event generation.
+- `SeasonRolloverService`: next-season creation with optional tournament copy.
 - `StandingsService`: championship table recalculation and season standings
   reads.
 - `StatisticsService`: player season statistics recalculation and leaderboards.
 - `seed_demo_data`: utility script for importing club and squad CSV data into a
   runnable demo dataset.
+- `StarterDataService`: starter LaLiga team, player, and home-stadium data for
+  new organizer accounts.
 
 ## Agreed Business Rules For Upcoming Work
 

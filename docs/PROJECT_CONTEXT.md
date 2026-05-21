@@ -27,6 +27,7 @@ checks must include both championship and cup matches.
   creation timestamp.
 - `Season`: competition period with name, dates, and status.
 - `Team`: football club with city, address, manager, and previous season place.
+  Teams can also store an optional `emblem_url` for the club badge.
 - `TeamSeasonStats`: recalculated seasonal team standings data.
 - `Player`: player connected to a team through `team_id`.
 - `Stadium`: venue with capacity and optional home team.
@@ -38,8 +39,9 @@ checks must include both championship and cup matches.
 - `MatchEvent`: match protocol event such as goal, assist, save, yellow card, or
   red card.
 - `PlayerSeasonStats`: recalculated player totals by season.
-- Demo seed data can be imported from parsed LaLiga CSV files for clubs and
-  squads.
+- New organizer accounts receive starter LaLiga team, player, and home-stadium
+  data with club emblem URLs so the workspace is usable immediately. Demo seed
+  data can also be imported from parsed LaLiga CSV files for clubs and squads.
 
 All subject-area entities except `User` are owned by one organizer through
 `owner_id`. API reads and writes always resolve these entities through the
@@ -82,6 +84,10 @@ current authenticated user.
   `5.00` from 10,000 seats, `10.00` from 30,000 seats, and `15.00` from 60,000
   seats.
 - Ticket price can be changed manually for a specific match.
+- Finished matches are immutable through normal match edit workflows: they
+  cannot be patched, rescheduled, assigned a referee, have ticket price changed,
+  or be deleted. Matches must be finished through the protocol finish workflow
+  or through random result generation.
 - Players with five accumulated yellow cards or a red card miss the next match.
 - Match lineups can include only players from one of the match participant
   teams, and a player cannot be added to the same match lineup twice.
@@ -89,6 +95,9 @@ current authenticated user.
 - Automatic lineup generation creates a lineup for one match participant team,
   can prioritize preferred players, skips suspended preferred players, and fills
   open slots with eligible teammates where possible.
+- Automatic lineup generation guarantees exactly one starting goalkeeper when
+  an eligible goalkeeper exists; if that valid starting lineup cannot be formed,
+  generation returns a clear conflict.
 - Automatic lineup generation does not overwrite an existing team lineup unless
   the organizer explicitly asks to replace it.
 - Match protocol events can be recorded only for match participant teams and
@@ -112,11 +121,20 @@ current authenticated user.
   teammates where possible.
 - Random match result generation must use realistic limits so scores and cards
   stay plausible.
-- Random match result generation creates goal, save, yellow-card, and red-card
-  protocol events, then marks the match as finished with a matching final score.
+- Random match result generation is an explicit generate-and-finish workflow for
+  the current MVP: it creates goal, save, yellow-card, and red-card protocol
+  events, then marks the match as finished with a matching final score.
 - Random match result generation requires both teams to have players, does not
   overwrite existing protocol events, and cannot run for finished or cancelled
   matches.
+- Protocol generation is available for a single match and for a whole season.
+  Protocol generation auto-fills missing referee assignment and both teams'
+  starting lineups, uses lineup players for generated events, and sets the final
+  score/status. Season simulation generates remaining clean matches in one
+  transaction, skipping finished matches, cancelled matches, and matches that
+  already have protocol events. It refreshes standings/statistics once and
+  rolls back if any remaining generated match lacks an available referee or
+  cannot form valid lineups.
 - Randomly generated scores are capped at five goals per team. Generated cards
   are capped at five yellow cards and one red card per team, and saves are
   capped at ten per team.
@@ -126,7 +144,11 @@ current authenticated user.
   season places are missing, the organizer selects teams manually.
 - Cup semifinal generation accepts exactly four unique teams, creates seeded
   pairings `1 vs 4` and `2 vs 3`, and assigns stadiums through home stadiums,
-  explicit team mapping, or a fallback stadium.
+  explicit team mapping, or a fallback stadium for the two home seeds.
+- Cup semifinal generation treats submitted datetimes as preferred start slots:
+  if a selected team is already busy that day or has reached the weekly match
+  limit, the service searches forward for the nearest valid date at the same
+  time instead of failing immediately.
 - Cup final generation requires two finished semifinals with clear winners.
   Drawn semifinals must be resolved before the final can be created.
 - Cup bracket view returns semifinal matches, final match when created, match
@@ -141,6 +163,7 @@ current authenticated user.
 
 - Organizer registration and JWT login.
 - CRUD for teams, players, stadiums, referees, seasons, and tournaments.
+- Optional club emblem URLs on teams.
 - Championship creation.
 - Cup tournament creation for four teams, either manually or from previous
   season places.
@@ -160,6 +183,9 @@ current authenticated user.
   by team, tournament, and date range.
 - Cup bracket view.
 - Demo data seeding from parsed club and squad CSV files.
+- Starter team, player, and home-stadium data after organizer registration.
+- Season rollover that creates a next season and optionally copies tournaments
+  while reusing the organizer's teams, players, stadiums, and referees.
 - User-scoped data isolation for all domain entities and derived tables.
 
 ## Not In MVP
@@ -194,15 +220,47 @@ also generate an eligible match lineup automatically.
 Finishing a match through either protocol submission or random result generation
 automatically refreshes player statistics for the season and refreshes
 championship standings when the match belongs to the championship.
+Random protocol generation is exposed both for one match and for a full-season
+simulation action that fills all existing season match protocols/results in one
+transaction, including missing referees and generated lineups when valid data is
+available.
+Season rollover is available for organizers who need to start a new season
+without re-entering the same workspace data. Teams, players, stadiums, and
+referees remain user-scoped reusable resources; the rollover action creates a
+new season and can copy the source season's tournaments into it with planned
+status.
 All domain repositories, services, and endpoints now operate in the current
 user's `owner_id` scope, including linked-resource validation and derived
 standings/statistics reads.
-The backend also includes a demo seed command that imports parsed LaLiga club
-and squad CSV files, creates or reuses a demo organizer account, and attaches
-the demo season, championship, cup, teams, stadiums, players, referees, and cup
-semifinal fixtures to that user, with an optional full championship schedule.
+The backend also includes starter data creation for newly registered organizers:
+20 LaLiga teams are created with home stadiums, previous-season places, manager
+names, `emblem_url` logo links, and 18 starter players per team. The starter
+players include two goalkeepers and sixteen field players so roster pages,
+lineup generation, protocol generation, and follow-up matches after
+disciplinary suspensions can be tested immediately. The demo seed
+command imports parsed LaLiga club and squad CSV files, creates or reuses a demo
+organizer account, and attaches the demo season, championship, cup, teams,
+stadiums, players, referees, and cup semifinal fixtures to that user, with an
+optional full championship schedule. The demo CSV importer accepts
+semicolon-delimited or tab-delimited files, handles UTF-8 and common legacy
+single-byte CSV encodings, and maps the source `logo` column into
+`Team.emblem_url`.
 Local frontend origins on ports `3000` and `5173` are allowed through CORS for
 the next development stage.
+
+The frontend now exists as a Vite/React/TypeScript single-page application in
+`frontend/`. It uses React Router, TanStack Query, a shared API client for
+`http://127.0.0.1:8000/api/v1`, JWT token persistence, protected routes, and a
+dark-only Tournify-inspired interface. The first frontend pass includes auth,
+dashboard, CRUD screens, match schedule/detail workflows, lineups, protocol
+events, match finishing/random result actions, championship standings and
+leaderboards, championship schedule generation, cup semifinal/final generation,
+and a cup bracket view. Docker Compose can now run PostgreSQL, backend, and the
+frontend dev server together from the repository root.
+
+The next agreed work should continue frontend polish in small verified layers:
+finish human-friendly validation/error states for remaining workflows, then run
+a focused mobile smoke after each visible layout change.
 
 ## API Conventions
 

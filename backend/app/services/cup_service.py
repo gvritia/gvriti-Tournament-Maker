@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
@@ -21,6 +22,8 @@ from app.schemas.cup import (
 from app.schemas.match import MatchRead
 from app.services.schedule_service import ScheduleService
 from app.services.ticket_price_service import TicketPriceService
+
+MAX_CUP_SLOT_SEARCH_DAYS = 120
 
 
 class CupService:
@@ -54,8 +57,10 @@ class CupService:
         )
         team_ids = self._resolve_semifinal_team_ids(payload)
         teams_by_id = self._get_teams_by_id(team_ids)
+        home_team_ids = [team_ids[0], team_ids[1]]
         stadiums_by_team_id = self._resolve_stadiums_by_team_id(
             team_ids=team_ids,
+            required_team_ids=home_team_ids,
             fallback_stadium_id=payload.fallback_stadium_id,
             stadium_ids_by_team=payload.stadium_ids_by_team,
         )
@@ -67,11 +72,11 @@ class CupService:
 
         created_matches: list[Match] = []
         try:
-            for home_team_id, away_team_id, match_datetime in pairings:
-                self.schedule.validate_teams_can_play_at(
+            for home_team_id, away_team_id, requested_datetime in pairings:
+                match_datetime = self._find_available_match_datetime(
                     home_team_id=home_team_id,
                     away_team_id=away_team_id,
-                    match_datetime=match_datetime,
+                    requested_datetime=requested_datetime,
                 )
                 match = self._build_match(
                     tournament=tournament,
@@ -98,6 +103,29 @@ class CupService:
                 "Could not generate cup semifinals because of a conflict."
             ) from exc
         return created_matches
+
+    def _find_available_match_datetime(
+        self,
+        *,
+        home_team_id: int,
+        away_team_id: int,
+        requested_datetime: datetime,
+    ) -> datetime:
+        for days_offset in range(MAX_CUP_SLOT_SEARCH_DAYS + 1):
+            candidate = requested_datetime + timedelta(days=days_offset)
+            try:
+                self.schedule.validate_teams_can_play_at(
+                    home_team_id=home_team_id,
+                    away_team_id=away_team_id,
+                    match_datetime=candidate,
+                )
+            except ConflictError:
+                continue
+            return candidate
+
+        raise ConflictError(
+            "Could not find an available cup match date for the selected teams."
+        )
 
     def generate_final(
         self,
@@ -271,6 +299,7 @@ class CupService:
         self,
         *,
         team_ids: list[int],
+        required_team_ids: list[int],
         fallback_stadium_id: int | None,
         stadium_ids_by_team: dict[int, int],
     ) -> dict[int, Stadium]:
@@ -290,7 +319,7 @@ class CupService:
             for team_id, stadium_id in stadium_ids_by_team.items()
         }
         stadiums_by_team_id: dict[int, Stadium] = {}
-        for team_id in team_ids:
+        for team_id in required_team_ids:
             stadium = (
                 self.stadiums.get_home_stadium_for_team(team_id)
                 or mapped_stadiums.get(team_id)

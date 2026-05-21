@@ -20,7 +20,25 @@ def auth_headers(client: TestClient, label: str) -> dict[str, str]:
         json={"email": f"{label}@example.com", "password": PASSWORD},
     )
     assert login_response.status_code == 200
-    return {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+    clear_starter_data(client, headers)
+    return headers
+
+
+def clear_starter_data(client: TestClient, headers: dict[str, str]) -> None:
+    for stadium in client.get("/api/v1/stadiums/", headers=headers).json():
+        assert (
+            client.delete(
+                f"/api/v1/stadiums/{stadium['id']}",
+                headers=headers,
+            ).status_code
+            == 204
+        )
+    for team in client.get("/api/v1/teams/", headers=headers).json():
+        assert (
+            client.delete(f"/api/v1/teams/{team['id']}", headers=headers).status_code
+            == 204
+        )
 
 
 def create_season(
@@ -314,6 +332,16 @@ def test_core_resources_are_scoped_to_current_user(client: TestClient) -> None:
     actions = [
         ("GET", f"/api/v1/seasons/{context_a['season_id']}", None),
         ("PATCH", f"/api/v1/seasons/{context_a['season_id']}", {"status": "active"}),
+        (
+            "POST",
+            f"/api/v1/seasons/{context_a['season_id']}/rollover",
+            {
+                "name": "Shared 2027",
+                "start_date": "2027-03-01",
+                "end_date": "2027-11-30",
+                "copy_tournaments": True,
+            },
+        ),
         ("DELETE", f"/api/v1/seasons/{context_a['season_id']}", None),
         ("GET", f"/api/v1/teams/{context_a['home_team_id']}", None),
         ("PATCH", f"/api/v1/teams/{context_a['home_team_id']}", {"city": "Kazan"}),

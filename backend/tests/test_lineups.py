@@ -446,6 +446,90 @@ def test_generate_lineup_selects_eligible_players(client: TestClient) -> None:
     assert len({lineup["number"] for lineup in lineups}) == 3
 
 
+def test_generate_lineup_starts_exactly_one_goalkeeper_from_preferred_players(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_lineup_context(client, headers)
+    first_goalkeeper_id = create_player(
+        client,
+        headers,
+        team_id=context["home_team_id"],
+        full_name="First Goalkeeper",
+        number=1,
+        position="goalkeeper",
+    )
+    second_goalkeeper_id = create_player(
+        client,
+        headers,
+        team_id=context["home_team_id"],
+        full_name="Second Goalkeeper",
+        number=12,
+        position="goalkeeper",
+    )
+
+    response = client.post(
+        f"/api/v1/matches/{context['match']['id']}/lineups/generate",
+        json={
+            "team_id": context["home_team_id"],
+            "lineup_size": 4,
+            "starting_size": 3,
+            "preferred_player_ids": [
+                first_goalkeeper_id,
+                second_goalkeeper_id,
+                context["second_home_player_id"],
+            ],
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    starting_lineups = [
+        lineup for lineup in response.json() if lineup["is_starting"] is True
+    ]
+    assert (
+        sum(1 for lineup in starting_lineups if lineup["position"] == "goalkeeper") == 1
+    )
+
+
+def test_generate_lineup_promotes_goalkeeper_into_starting_lineup(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_lineup_context(client, headers)
+    goalkeeper_id = create_player(
+        client,
+        headers,
+        team_id=context["home_team_id"],
+        full_name="Home Goalkeeper",
+        number=1,
+        position="goalkeeper",
+    )
+
+    response = client.post(
+        f"/api/v1/matches/{context['match']['id']}/lineups/generate",
+        json={
+            "team_id": context["home_team_id"],
+            "lineup_size": 3,
+            "starting_size": 2,
+            "preferred_player_ids": [
+                context["home_player_id"],
+                context["second_home_player_id"],
+            ],
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    starting_lineups = [
+        lineup for lineup in response.json() if lineup["is_starting"] is True
+    ]
+    assert goalkeeper_id in {lineup["player_id"] for lineup in starting_lineups}
+    assert (
+        sum(1 for lineup in starting_lineups if lineup["position"] == "goalkeeper") == 1
+    )
+
+
 def test_generate_lineup_replaces_suspended_preferred_player(
     client: TestClient,
 ) -> None:

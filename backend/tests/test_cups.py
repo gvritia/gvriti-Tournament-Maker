@@ -21,7 +21,25 @@ def auth_headers(client: TestClient) -> dict[str, str]:
         },
     )
     token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+    headers = {"Authorization": f"Bearer {token}"}
+    clear_starter_data(client, headers)
+    return headers
+
+
+def clear_starter_data(client: TestClient, headers: dict[str, str]) -> None:
+    for stadium in client.get("/api/v1/stadiums/", headers=headers).json():
+        assert (
+            client.delete(
+                f"/api/v1/stadiums/{stadium['id']}",
+                headers=headers,
+            ).status_code
+            == 204
+        )
+    for team in client.get("/api/v1/teams/", headers=headers).json():
+        assert (
+            client.delete(f"/api/v1/teams/{team['id']}", headers=headers).status_code
+            == 204
+        )
 
 
 def create_season(client: TestClient, headers: dict[str, str]) -> int:
@@ -439,6 +457,38 @@ def test_generate_cup_semifinals_can_select_top_previous_season_teams(
     }
 
 
+def test_generate_cup_semifinals_needs_stadiums_only_for_home_seeds(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_cup_context(client, headers, create_home_stadiums=False)
+    first_home_stadium_id = create_stadium(
+        client,
+        headers,
+        name="First Seed Arena",
+        home_team_id=context["team_ids"][0],
+    )
+    second_home_stadium_id = create_stadium(
+        client,
+        headers,
+        name="Second Seed Arena",
+        home_team_id=context["team_ids"][1],
+    )
+
+    response = client.post(
+        f"/api/v1/cups/{context['cup_id']}/semifinals",
+        json=semifinal_payload(context["team_ids"]),
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    semifinals = response.json()
+    assert [match["stadium_id"] for match in semifinals] == [
+        first_home_stadium_id,
+        second_home_stadium_id,
+    ]
+
+
 def test_generate_cup_semifinals_requires_manual_selection_without_previous_places(
     client: TestClient,
 ) -> None:
@@ -544,7 +594,7 @@ def test_generate_cup_semifinals_rejects_duplicate_teams(
     assert response.status_code == 400
 
 
-def test_generate_cup_semifinals_rejects_existing_calendar_conflict(
+def test_generate_cup_semifinals_moves_matches_from_calendar_conflicts(
     client: TestClient,
 ) -> None:
     headers = auth_headers(client)
@@ -577,9 +627,63 @@ def test_generate_cup_semifinals_rejects_existing_calendar_conflict(
         headers=headers,
     )
 
-    assert response.status_code == 409
+    assert response.status_code == 201
+    semifinals = response.json()
+    assert semifinals[0]["match_datetime"].startswith("2026-04-02T18:00:00")
+    assert semifinals[1]["match_datetime"].startswith("2026-04-02T18:00:00")
     assert bracket_response.status_code == 200
-    assert bracket_response.json()["semifinals"] == []
+    assert len(bracket_response.json()["semifinals"]) == 2
+
+
+def test_generate_cup_semifinals_moves_matches_from_weekly_limit(
+    client: TestClient,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_cup_context(client, headers)
+    championship_id = create_tournament(
+        client,
+        headers,
+        context["season_id"],
+        name="Premier League",
+        tournament_type="championship",
+    )
+    create_match(
+        client,
+        headers,
+        tournament_id=championship_id,
+        season_id=context["season_id"],
+        home_team_id=context["team_ids"][0],
+        away_team_id=context["team_ids"][1],
+        stadium_id=context["stadium_ids"][0],
+        match_datetime="2026-04-01T20:00:00",
+    )
+    create_match(
+        client,
+        headers,
+        tournament_id=championship_id,
+        season_id=context["season_id"],
+        home_team_id=context["team_ids"][0],
+        away_team_id=context["team_ids"][2],
+        stadium_id=context["stadium_ids"][0],
+        match_datetime="2026-04-02T20:00:00",
+    )
+
+    response = client.post(
+        f"/api/v1/cups/{context['cup_id']}/semifinals",
+        json=semifinal_payload(
+            context["team_ids"],
+            match_datetimes=[
+                "2026-04-03T18:00:00",
+                "2026-04-04T18:00:00",
+            ],
+        ),
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    semifinals = response.json()
+    assert semifinals[0]["match_datetime"].startswith("2026-04-06T18:00:00")
+    assert semifinals[1]["match_datetime"].startswith("2026-04-04T18:00:00")
 
 
 def test_generate_cup_semifinals_rejects_duplicate_bracket(

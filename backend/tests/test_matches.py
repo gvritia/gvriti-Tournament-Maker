@@ -221,6 +221,30 @@ def test_create_match_rejects_finished_status(client: TestClient) -> None:
     assert response.status_code == 400
 
 
+def test_update_match_rejects_finished_status(client: TestClient) -> None:
+    headers = auth_headers(client)
+    context = setup_match_context(client, headers, team_count=2)
+    match = create_match(
+        client,
+        headers,
+        create_match_payload(
+            tournament_id=context["tournament_id"],
+            season_id=context["season_id"],
+            home_team_id=context["team_ids"][0],
+            away_team_id=context["team_ids"][1],
+            stadium_id=context["stadium_id"],
+        ),
+    )
+
+    response = client.patch(
+        f"/api/v1/matches/{match['id']}",
+        json={"status": "finished", "home_score": 0, "away_score": 0},
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+
+
 def test_create_match_rejects_tournament_season_mismatch(
     client: TestClient,
 ) -> None:
@@ -535,6 +559,59 @@ def test_set_manual_ticket_price_keeps_price_after_reschedule(
     assert decimal_from_response(reschedule_response.json()["ticket_price"]) == Decimal(
         "42.50"
     )
+
+
+@pytest.mark.parametrize(
+    ("method", "path_suffix", "json_body"),
+    [
+        ("PATCH", "", {"round_number": 2}),
+        ("DELETE", "", None),
+        ("POST", "/assign-referee", {"referee_id": "REFEREE_ID"}),
+        ("POST", "/reschedule", {"match_datetime": "2026-04-08T18:00:00"}),
+        ("POST", "/ticket-price", {"ticket_price": "42.50"}),
+    ],
+)
+def test_finished_match_rejects_normal_edit_actions(
+    client: TestClient,
+    method: str,
+    path_suffix: str,
+    json_body: dict[str, Any] | None,
+) -> None:
+    headers = auth_headers(client)
+    context = setup_match_context(client, headers, team_count=2)
+    referee_id = create_referee(client, headers)
+    match = create_match(
+        client,
+        headers,
+        create_match_payload(
+            tournament_id=context["tournament_id"],
+            season_id=context["season_id"],
+            home_team_id=context["team_ids"][0],
+            away_team_id=context["team_ids"][1],
+            stadium_id=context["stadium_id"],
+        ),
+    )
+    finish_response = client.post(
+        f"/api/v1/matches/{match['id']}/finish",
+        json={"home_score": 0, "away_score": 0},
+        headers=headers,
+    )
+    assert finish_response.status_code == 200
+
+    if json_body is not None:
+        json_body = {
+            key: referee_id if value == "REFEREE_ID" else value
+            for key, value in json_body.items()
+        }
+
+    response = client.request(
+        method,
+        f"/api/v1/matches/{match['id']}{path_suffix}",
+        json=json_body,
+        headers=headers,
+    )
+
+    assert response.status_code == 400
 
 
 @pytest.mark.parametrize(

@@ -1,0 +1,86 @@
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
+import { AppShell } from "../components/AppShell";
+import { AuthProvider } from "../features/auth/AuthProvider";
+import { ProtectedRoute } from "../features/auth/ProtectedRoute";
+import { AuthPage } from "../pages/AuthPage";
+import {
+  ChampionshipPage,
+  CupPage,
+  MatchDetailPage,
+  MatchesPage,
+  PreviewDashboard,
+  TeamDetailPage,
+  TeamsPage,
+} from "../pages/PreviewPages";
+import {
+  WorkspaceRefereesPage,
+  WorkspaceSeasonsPage,
+  WorkspaceStadiumsPage,
+} from "../pages/WorkspaceCatalogPages";
+import {
+  WorkspaceDashboard,
+  WorkspacePlaceholder,
+  WorkspaceTeamDetailPage,
+} from "../pages/WorkspacePages";
+import { WorkspaceChampionshipPage } from "../pages/WorkspaceChampionshipPage";
+import { WorkspaceCupPage } from "../pages/WorkspaceCupPage";
+import { WorkspaceMatchDetailActionsPage } from "../pages/WorkspaceMatchDetailActionsPage";
+import { WorkspaceMatchesCrudPage } from "../pages/WorkspaceMatchesCrudPage";
+import { WorkspacePlayersCrudPage } from "../pages/WorkspacePlayersCrudPage";
+import { WorkspaceTeamsCrudPage } from "../pages/WorkspaceTeamsCrudPage";
+import { WorkspaceTournamentsCrudPage } from "../pages/WorkspaceTournamentsCrudPage";
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <AppShell mode="preview" />,
+    children: [
+      { index: true, element: <PreviewDashboard /> },
+      { path: "teams", element: <TeamsPage /> },
+      { path: "teams/:teamId", element: <TeamDetailPage /> },
+      { path: "matches", element: <MatchesPage /> },
+      { path: "matches/:matchId", element: <MatchDetailPage /> },
+      { path: "championship", element: <ChampionshipPage /> },
+      { path: "cup", element: <CupPage /> },
+      { path: "login", element: <AuthPage mode="login" /> },
+      { path: "register", element: <AuthPage mode="register" /> },
+      { path: "*", element: <Navigate to="/" replace /> },
+    ],
+  },
+  {
+    path: "/app",
+    element: <ProtectedRoute />,
+    children: [
+      {
+        element: <AppShell mode="workspace" />,
+        children: [
+          { index: true, element: <WorkspaceDashboard /> },
+          { path: "seasons", element: <WorkspaceSeasonsPage /> },
+          { path: "teams", element: <WorkspaceTeamsCrudPage /> },
+          { path: "teams/:teamId", element: <WorkspaceTeamDetailPage /> },
+          { path: "players", element: <WorkspacePlayersCrudPage /> },
+          { path: "stadiums", element: <WorkspaceStadiumsPage /> },
+          { path: "referees", element: <WorkspaceRefereesPage /> },
+          { path: "tournaments", element: <WorkspaceTournamentsCrudPage /> },
+          { path: "matches", element: <WorkspaceMatchesCrudPage /> },
+          { path: "matches/:matchId", element: <WorkspaceMatchDetailActionsPage /> },
+          {
+            path: "championship",
+            element: <WorkspaceChampionshipPage />,
+          },
+          { path: "cup", element: <WorkspaceCupPage /> },
+        ],
+      },
+    ],
+  },
+]);
+
+export function App() {
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
+}
+
+

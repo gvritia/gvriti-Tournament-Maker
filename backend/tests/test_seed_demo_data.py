@@ -24,10 +24,10 @@ def write_demo_csvs(tmp_path: Path) -> tuple[Path, Path]:
         "\n".join(
             [
                 "club_id;club_name;city;stadium;stadium_address;coach;founded;country;logo;squad",
-                "1;Alpha FC;Madrid;Alpha Arena;Alpha Street;Coach A;1901;Spain;;",
-                "2;Beta FC;Barcelona;Beta Arena;Beta Street;Coach B;1902;Spain;;",
-                "3;Gamma FC;Sevilla;Gamma Arena;Gamma Street;Coach C;1903;Spain;;",
-                "4;Delta FC;Valencia;Delta Arena;Delta Street;Coach D;1904;Spain;;",
+                "1;Alpha FC;Madrid;Alpha Arena;Alpha Street;Coach A;1901;Spain;https://example.com/alpha.png;",
+                "2;Beta FC;Barcelona;Beta Arena;Beta Street;Coach B;1902;Spain;https://example.com/beta.png;",
+                "3;Gamma FC;Sevilla;Gamma Arena;Gamma Street;Coach C;1903;Spain;https://example.com/gamma.png;",
+                "4;Delta FC;Valencia;Delta Arena;Delta Street;Coach D;1904;Spain;https://example.com/delta.png;",
             ]
         ),
         encoding="utf-8",
@@ -62,9 +62,29 @@ def test_demo_seed_csv_readers_parse_semicolon_files(tmp_path: Path) -> None:
     assert len(clubs) == 4
     assert clubs[0].club_name == "Alpha FC"
     assert clubs[0].coach == "Coach A"
+    assert clubs[0].logo == "https://example.com/alpha.png"
     assert len(players) == 9
     assert players[1].age == 27
     assert players[1].position == PlayerPosition.FORWARD
+
+
+def test_demo_seed_csv_readers_accept_tab_files(tmp_path: Path) -> None:
+    clubs_csv = tmp_path / "clubs.tsv"
+    clubs_csv.write_text(
+        "\n".join(
+            [
+                "club_id\tclub_name\tcity\tstadium\tstadium_address\tcoach\tlogo",
+                "529\tBarcelona\tBarcelona\tCamp Nou\tLes Corts\tH. Flick\thttps://media.api-sports.io/football/teams/529.png",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    clubs = read_clubs_csv(clubs_csv)
+
+    assert len(clubs) == 1
+    assert clubs[0].club_name == "Barcelona"
+    assert clubs[0].logo == "https://media.api-sports.io/football/teams/529.png"
 
 
 def test_demo_data_seeder_is_idempotent_and_resolves_duplicate_numbers(
@@ -98,6 +118,12 @@ def test_demo_data_seeder_is_idempotent_and_resolves_duplicate_numbers(
         "Delta FC",
     ]
     assert [team.previous_season_place for team in teams] == [1, 2, 3, 4]
+    assert [team.emblem_url for team in teams] == [
+        "https://example.com/alpha.png",
+        "https://example.com/beta.png",
+        "https://example.com/gamma.png",
+        "https://example.com/delta.png",
+    ]
 
     stadiums = list(db_session.scalars(select(Stadium).order_by(Stadium.name)))
     assert len(stadiums) == 4
