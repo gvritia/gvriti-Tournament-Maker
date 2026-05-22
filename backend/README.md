@@ -1,32 +1,64 @@
 # Tournament Maker Backend
 
-Backend for a study project that manages a national football championship and a
-cup tournament. The backend includes JWT auth, user-scoped tournament data,
-CRUD endpoints, schedule generation, cup bracket flow, match lineups, match
-protocols, random results, standings, player statistics, Alembic migrations,
-and demo data seeding.
+Backend - серверная часть учебной системы Tournament Maker. Приложение управляет футбольными сезонами, чемпионатом, кубком, командами, игроками, стадионами, судьями, матчами, составами, протоколами, турнирной таблицей и статистикой игроков.
 
-Frontend is intentionally not created in this iteration.
+## Возможности backend
 
-## Requirements
+- JWT-регистрация и вход пользователя;
+- хранение паролей в виде bcrypt-хеша;
+- изоляция данных организаторов через `owner_id`;
+- CRUD для сезонов, команд, игроков, стадионов, судей и турниров;
+- создание и редактирование матчей;
+- назначение судей с проверкой занятости;
+- расчет и ручное изменение цены билета;
+- генерация расписания чемпионата;
+- генерация полуфиналов и финала кубка;
+- ручное и автоматическое формирование составов;
+- ведение протокола матча;
+- генерация случайного результата;
+- пересчет турнирной таблицы;
+- пересчет статистики игроков;
+- demo-наполнение из CSV-файлов.
+
+## Технологии
 
 - Python 3.11+
-- Docker and Docker Compose
-- PostgreSQL, started through `docker-compose.yml`
+- FastAPI
+- PostgreSQL
+- SQLAlchemy 2.0
+- Alembic
+- Pydantic v2
+- pydantic-settings
+- python-jose
+- passlib/bcrypt
+- pytest
+- ruff
+- black
 
-## First Run
+## Структура backend
 
-From the repository root:
+```text
+app/core          настройки, безопасность, константы, исключения
+app/db            база SQLAlchemy и создание сессий
+app/models        ORM-модели SQLAlchemy
+app/schemas       Pydantic-схемы запросов и ответов
+app/api           FastAPI-маршруты и зависимости
+app/repositories  слой доступа к данным
+app/services      бизнес-логика приложения
+app/scripts       служебные скрипты, включая demo-seed
+alembic           миграции базы данных
+tests             автоматические тесты pytest
+```
+
+## Первый запуск
+
+Из корня проекта запустить PostgreSQL:
 
 ```powershell
 docker compose up -d db
 ```
 
-The PostgreSQL container is exposed on host port `55432` to avoid conflicts with
-locally installed PostgreSQL services. The container still uses port `5432`
-internally.
-
-From the backend directory:
+Подготовить backend:
 
 ```powershell
 cd backend
@@ -39,43 +71,27 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-Or run PostgreSQL and the backend together from the repository root:
-
-```powershell
-docker compose up --build backend
-```
-
-The backend container listens on `http://127.0.0.1:8000` and runs
-`alembic upgrade head` before starting Uvicorn.
-
-If you use an already existing virtual environment, install dependencies into
-that active environment first:
-
-```powershell
-cd backend
-python -m pip install -r requirements-dev.txt
-uvicorn app.main:app --reload
-```
-
-The app requires `pydantic-settings`, `SQLAlchemy`, `psycopg`, `python-jose`,
-and the other packages listed in `requirements.txt`.
-
-Healthcheck:
+Проверить запуск:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
-Expected response:
+Ожидаемый ответ:
 
 ```json
-{"status": "ok", "service": "Tournament Maker Backend"}
+{"status":"ok","service":"Tournament Maker Backend"}
 ```
 
-## Demo Data
+## Документация API
 
-After PostgreSQL is running and migrations are applied, seed the demo LaLiga
-dataset from the parsed CSV files:
+После запуска backend доступны:
+
+- Swagger UI: `http://127.0.0.1:8000/docs`;
+- ReDoc: `http://127.0.0.1:8000/redoc`;
+- OpenAPI JSON: `http://127.0.0.1:8000/openapi.json`.
+
+## Demo-данные
 
 ```powershell
 cd backend
@@ -84,22 +100,23 @@ python -m app.scripts.seed_demo_data `
   --squads-csv "C:\Users\user\PycharmProjects\parsing_footbal_clubs\laliga_squads.csv"
 ```
 
-The seed command creates a demo season, championship and cup tournaments, teams,
-home stadiums, players, referees, and cup semifinal fixtures for the default
-demo user `demo@example.com` / `DemoPass123`. It can be run again safely for the
-same dataset. Add `--generate-championship-schedule` to also create a full
-double round-robin championship schedule.
+Для генерации полного расписания чемпионата:
 
-The demo user can be changed with `--owner-email`, `--owner-nickname`, and
-`--owner-password`.
+```powershell
+python -m app.scripts.seed_demo_data `
+  --clubs-csv "C:\Users\user\PycharmProjects\parsing_footbal_clubs\laliga_clubs.csv" `
+  --squads-csv "C:\Users\user\PycharmProjects\parsing_footbal_clubs\laliga_squads.csv" `
+  --generate-championship-schedule
+```
 
-## API Defense Flow
+Demo-пользователь:
 
-1. Start PostgreSQL, install dependencies, run `alembic upgrade head`, and start
-   `uvicorn app.main:app --reload`. Alternatively, run
-   `docker compose up --build backend`.
-2. Seed demo data with `python -m app.scripts.seed_demo_data ...`.
-3. Log in and save the JWT token:
+```text
+email: demo@example.com
+password: DemoPass123
+```
+
+## Пример входа через API
 
 ```powershell
 $token = (Invoke-RestMethod `
@@ -111,7 +128,7 @@ $token = (Invoke-RestMethod `
 $headers = @{ Authorization = "Bearer $token" }
 ```
 
-4. Show the main protected flow:
+Проверка защищенных маршрутов:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/api/v1/auth/me -Headers $headers
@@ -120,93 +137,24 @@ Invoke-RestMethod http://127.0.0.1:8000/api/v1/teams/ -Headers $headers
 Invoke-RestMethod http://127.0.0.1:8000/api/v1/matches/ -Headers $headers
 ```
 
-5. Demonstrate a generated result and derived tables. Replace `$matchId` and
-   `$seasonId` with IDs returned by the previous calls:
-
-```powershell
-Invoke-RestMethod `
-  -Method Post `
-  -Uri "http://127.0.0.1:8000/api/v1/matches/$matchId/generate-random-result" `
-  -Headers $headers `
-  -ContentType "application/json" `
-  -Body '{"seed":42}'
-
-Invoke-RestMethod `
-  "http://127.0.0.1:8000/api/v1/standings/seasons/$seasonId" `
-  -Headers $headers
-
-Invoke-RestMethod `
-  "http://127.0.0.1:8000/api/v1/statistics/seasons/$seasonId/leaders/goals" `
-  -Headers $headers
-```
-
-6. Create a second user and demonstrate isolation:
-
-```powershell
-Invoke-RestMethod `
-  -Method Post `
-  -Uri http://127.0.0.1:8000/api/v1/auth/register `
-  -ContentType "application/json" `
-  -Body '{"nickname":"second-demo","email":"second-demo@example.com","password":"StrongPass123"}'
-
-$secondToken = (Invoke-RestMethod `
-  -Method Post `
-  -Uri http://127.0.0.1:8000/api/v1/auth/login `
-  -ContentType "application/json" `
-  -Body '{"email":"second-demo@example.com","password":"StrongPass123"}').access_token
-
-$secondHeaders = @{ Authorization = "Bearer $secondToken" }
-
-Invoke-RestMethod http://127.0.0.1:8000/api/v1/seasons/ -Headers $secondHeaders
-Invoke-RestMethod "http://127.0.0.1:8000/api/v1/seasons/$seasonId" -Headers $secondHeaders
-```
-
-The second user's list contains only their own data, and direct requests for the
-demo user's IDs return `404 Not Found`.
-
-## Alembic
-
-Apply migrations and check for schema drift:
-
-```powershell
-cd backend
-alembic upgrade head
-alembic check
-```
-
-## Tests and Formatting
+## Тесты и проверки
 
 ```powershell
 cd backend
 pytest
 ruff check .
-black .
+black --check .
+alembic check
 ```
 
-## API Status Codes
+## Основные HTTP-статусы
 
-- `GET`: `200 OK`
-- create `POST`: `201 Created`
-- action `POST`, including login: `200 OK`
-- `PATCH`/`PUT`: `200 OK`
-- `DELETE`: `204 No Content`
-- invalid payload: `422 Unprocessable Entity`
-- invalid or missing JWT: `401 Unauthorized`
-- forbidden action: `403 Forbidden`
-- missing resource: `404 Not Found`
-- duplicate or scheduling conflict: `409 Conflict`
-
-## Project Layout
-
-```text
-app/core          settings, security, constants, exceptions
-app/db            SQLAlchemy base and session
-app/models        SQLAlchemy ORM models
-app/schemas       Pydantic v2 API schemas
-app/api           FastAPI routers and dependencies
-app/repositories  database access layer
-app/services      business logic layer
-app/utils         shared helpers
-alembic           migration environment
-tests             pytest tests
-```
+- `200 OK` - успешное чтение, изменение или действие;
+- `201 Created` - создание ресурса;
+- `204 No Content` - удаление;
+- `400 Bad Request` - некорректный бизнес-запрос;
+- `401 Unauthorized` - отсутствует или неверен JWT;
+- `403 Forbidden` - нет доступа;
+- `404 Not Found` - ресурс не найден;
+- `409 Conflict` - конфликт уникальности или расписания;
+- `422 Unprocessable Entity` - ошибка валидации входных данных.

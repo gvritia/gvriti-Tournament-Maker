@@ -1,162 +1,83 @@
-# Architecture
+# Архитектура Tournament Maker
 
-## Backend Layers
+## Общий подход
 
-- `api`: FastAPI routers, dependencies, and HTTP error mapping.
-- `schemas`: Pydantic request and response contracts.
-- `services`: business rules and transaction orchestration.
-- `repositories`: database queries and persistence through SQLAlchemy sessions.
-- `models`: SQLAlchemy ORM tables and relationships.
-- `scripts`: backend utility commands, including demo data import.
+Tournament Maker построен как многоуровневое web-приложение. Backend отвечает за хранение данных, бизнес-логику, авторизацию, проверку ограничений и предоставление REST API. Frontend обращается к backend через HTTP-запросы и отображает данные пользователю.
 
-Endpoints should stay thin. They validate HTTP inputs, call services, and map
-domain exceptions to HTTP status codes. Business rules belong in services.
+Главный принцип backend-архитектуры - разделение ответственности между слоями. Маршруты API остаются тонкими, а предметная логика размещается в сервисах.
 
-## Current Decisions
+## Слои backend
 
-- CRUD endpoints require JWT authentication.
-- Subject-area tables use `owner_id` to isolate organizer data. The scoped
-  tables are seasons, teams, players, stadiums, referees, tournaments, matches,
-  match lineups, match events, team season stats, and player season stats.
-- Endpoints pass `current_user.id` into repositories and services; repositories
-  apply owner filtering for reads, lists, helper lookups, and bulk deletes.
-- Services assign `owner_id` when creating domain rows and validate referenced
-  IDs through owner-scoped repositories, so users cannot link their data to
-  another organizer's seasons, teams, players, stadiums, referees, tournaments,
-  matches, lineups, events, or derived stats.
-- Missing or foreign owned entities are reported as not found at the API layer.
-- Season, team, stadium, and referee names are unique within one owner scope.
-  Tournament names are unique within one owner season.
-- Teams store an optional `emblem_url` string for a club badge; the API validates
-  it as an HTTP/HTTPS URL.
-- `AuthService.register` seeds starter team, player, home-stadium, and referee
-  rows for a newly created organizer through `StarterDataService` before the
-  registration transaction commits. Team/player/stadium seeding only runs when
-  the owner has no teams, while referee seeding is idempotent and can fill a
-  missing starter referee pool without overwriting later organizer edits.
-- `SeasonRolloverService` creates a next season from an existing owner-scoped
-  source season. Teams, players, stadiums, and referees are not cloned because
-  they already belong to the organizer workspace; source tournaments may be
-  copied into the new season with planned status.
-- Database writes are committed in services after repository operations.
-- Domain errors use app-level exceptions:
-  - `NotFoundError` -> `404`
-  - `ConflictError` -> `409`
-  - `BusinessRuleError` -> `400`
-- PostgreSQL is exposed on host port `55432` to avoid local PostgreSQL conflicts.
-- Docker Compose can run PostgreSQL alone, build and run the backend service
-  with `alembic upgrade head` executed at container startup, or run the full
-  local stack including the Vite frontend service.
-- CORS is configured from `CORS_ORIGINS`; local frontend dev servers on ports
-  `3000` and `5173` are allowed by default.
-- Alembic is the only supported way to change the database schema.
-- `MatchService` owns match creation, updates, deletion, rescheduling, referee
-  assignment, and manual ticket price changes. It rejects normal edit/delete
-  actions for finished matches and does not allow generic `PATCH` updates to
-  set `status=finished`; finish workflows live in protocol/random-result
-  services.
-- `CupService` owns cup semifinal generation, final generation, and bracket
-  reads. Cup matches are regular `Match` rows marked with `CupStage`; semifinal
-  stadium resolution applies to the two home seeds in the seeded pairings.
-- Cup semifinals can be generated from manual team ids or from the top four
-  teams ordered by `previous_season_place`; if previous season places are not
-  available, manual selection remains the supported path.
-- Cup semifinal datetimes are preferred slots rather than hard requirements.
-  `CupService` searches forward from each requested semifinal datetime and uses
-  the nearest date at the same time that satisfies team daily and weekly
-  calendar limits.
-- Cup final generation is derived from finished semifinal winners and rejects
-  unfinished or drawn semifinals.
-- `ScheduleService` validates team match limits across all tournaments using
-  Monday-through-Sunday weeks, generates championship double round-robin
-  schedules, and exposes season/stadium schedule reads. Season schedule reads
-  support optional filters by team, tournament, and inclusive date range.
-- Championship schedule generation creates all matches in one transaction and
-  rolls back the batch if any generated match violates calendar limits.
-- Championship schedule generation resolves stadiums by home team first, then
-  by explicit team mapping, then by fallback stadium.
-- `ValidationService` checks referee availability for parallel matches at the
-  same scheduled datetime.
-- `TicketPriceService` calculates the default match ticket price once at match
-  creation. The current formula uses a base price of `20.00`, stadium capacity
-  factors, and the highest club coefficient among the two teams.
-- `LineupService` owns match lineup editing and automatic lineup generation. It
-  validates match participation, player-team membership, duplicate players,
-  duplicate lineup numbers, and basic red-card/five-yellow-card suspension
-  rules.
-- Automatic lineup generation can prioritize preferred players, skip suspended
-  preferred players, fill open slots with eligible teammates, ensure exactly one
-  starting goalkeeper when an eligible goalkeeper exists, and optionally replace
-  an existing team lineup.
-- `MatchProtocolService` owns match event recording and match finishing. It
-  validates participant teams, player-team membership, optional assist players,
-  mutable match status, and final score consistency with goal events. When a
-  match is finished, it refreshes player statistics for the season and refreshes
-  championship standings only for championship matches.
-- `RandomResultService` owns the current MVP generate-and-finish random result
-  workflow. It creates bounded protocol events, rejects matches with existing
-  protocol events, finishes the match, and refreshes the same season
-  standings/statistics in one transaction.
-- The same service exposes protocol generation for one match and season
-  simulation. Season simulation skips finished matches, cancelled matches, and
-  matches that already have protocol events, then generates protocols/results
-  for the remaining clean matches in one transaction and rebuilds derived
-  standings/statistics once at the end. Protocol generation also auto-assigns
-  an available referee when missing, generates missing starting lineups, and
-  uses lineup players for generated events.
-- `StandingsService` recalculates `TeamSeasonStats` from finished championship
-  matches and orders places by points, goal difference, goals scored, then
-  `team_id`. Manual recalculate endpoints remain available, while finish/random
-  services can reuse the same rebuild logic inside their own transaction.
-- `StatisticsService` recalculates `PlayerSeasonStats` from protocol events in
-  finished matches and exposes leaderboards by supported stat metrics. Manual
-  recalculate endpoints remain available, while finish/random services can
-  reuse the same rebuild logic inside their own transaction.
-- GitHub Actions runs backend CI on pushes to `master`/`main` and pull requests:
-  tests, `ruff check .`, `black --check .`, and Alembic migration drift checks
-  against PostgreSQL.
-- `app.scripts.seed_demo_data` imports parsed LaLiga CSV files and creates demo
-  season data through ORM sessions. The command creates or reuses a demo
-  organizer account, assigns all seeded rows to that owner, and is idempotent
-  for its own seeded season, teams, stadiums, players, referees, and cup
-  semifinal fixtures. The importer accepts semicolon or tab delimiters, maps
-  club `logo` values into `Team.emblem_url`, and falls back from UTF-8 to common
-  single-byte CSV encodings when needed.
+```text
+app/main.py        создание FastAPI-приложения
+app/api           маршруты, зависимости, обработка HTTP-запросов
+app/schemas       Pydantic-схемы запросов и ответов
+app/services      бизнес-логика
+app/repositories  доступ к базе данных
+app/models        SQLAlchemy ORM-модели
+app/db            подключение к базе и управление сессиями
+app/core          настройки, безопасность, исключения, константы
+app/scripts       служебные скрипты
+```
 
-## Implemented Domain Services
+## API-слой
 
-- `MatchService`: match CRUD, rescheduling, referee assignment, and manual
-  ticket price updates.
-- `CupService`: four-team semifinal generation from manual ids or previous
-  season places, final generation from semifinal winners, and bracket reads.
-- `ScheduleService`: calendar validation for one match per day and two matches
-  per Monday-through-Sunday week, double round-robin championship generation,
-  and season/stadium schedule reads with season-level filters.
-- `TicketPriceService`: default ticket pricing.
-- `ValidationService`: referee availability checks.
-- `LineupService`: match lineup listing, creation, update, deletion, automatic
-  lineup generation, and suspension validation.
-- `MatchProtocolService`: event listing, creation, update, deletion, and
-  finishing matches.
-- `RandomResultService`: bounded random score and protocol event generation.
-- `SeasonRolloverService`: next-season creation with optional tournament copy.
-- `StandingsService`: championship table recalculation and season standings
-  reads.
-- `StatisticsService`: player season statistics recalculation and leaderboards.
-- `seed_demo_data`: utility script for importing club and squad CSV data into a
-  runnable demo dataset.
-- `StarterDataService`: starter LaLiga team, player, home-stadium, and referee
-  data for new organizer accounts.
+API-слой реализован на FastAPI. Основной router подключается в `backend/app/api/v1/router.py`. В проекте есть маршруты для авторизации, пользователей, сезонов, команд, игроков, стадионов, судей, турниров, матчей, составов, протоколов, расписания, кубка, турнирной таблицы и статистики.
 
-## Agreed Business Rules For Upcoming Work
+Маршруты отвечают за:
 
-- Weekly calendar limits use Monday through Sunday.
-- Ticket price is calculated once for a match and remains fixed unless manually
-  changed.
-- Ticket price formula:
-  `total_price = (base_price + capacity_factor) * club_coefficient`.
-- Club coefficient tiers:
-  - top third of previous season table: `2.0`
-  - middle third: `1.5`
-  - bottom third: `1.1`
-- Five yellow cards or one red card suspend a player for the next match.
+- прием HTTP-запроса;
+- получение текущего пользователя;
+- передачу данных в сервисный слой;
+- возврат ответа клиенту;
+- преобразование доменных ошибок в HTTP-статусы.
+
+## Сервисный слой
+
+Бизнес-логика находится в `backend/app/services`. Сервисы отвечают за правила предметной области и координацию операций с базой данных.
+
+Основные сервисы:
+
+- `AuthService` - регистрация, вход и создание JWT;
+- `MatchService` - создание и изменение матчей;
+- `ScheduleService` - генерация расписания чемпионата;
+- `CupService` - логика кубкового турнира;
+- `LineupService` - работа с составами;
+- `MatchProtocolService` - события матча и завершение матча;
+- `RandomResultService` - генерация результатов;
+- `StandingsService` - пересчет турнирной таблицы;
+- `StatisticsService` - пересчет статистики игроков;
+- `TicketPriceService` - расчет цены билета;
+- `StarterDataService` - стартовые данные нового пользователя.
+
+## Репозитории
+
+Репозитории находятся в `backend/app/repositories`. Они инкапсулируют запросы к базе данных через SQLAlchemy. Такой подход отделяет бизнес-логику от деталей SQL-запросов и упрощает повторное использование операций чтения и записи.
+
+Все предметные репозитории учитывают `owner_id`, чтобы пользователь работал только со своими данными.
+
+## Модели и миграции
+
+ORM-модели находятся в `backend/app/models`. Они описывают структуру таблиц и связи между сущностями. Изменение структуры базы выполняется только через Alembic-миграции в `backend/alembic/versions`.
+
+## Авторизация и безопасность
+
+Пользователи проходят регистрацию и вход через JWT. Пароль хранится не в открытом виде, а как bcrypt-хеш. Защищенные маршруты получают текущего пользователя через зависимость FastAPI. Если токен отсутствует или некорректен, API возвращает `401 Unauthorized`.
+
+## Изоляция пользовательских данных
+
+Большинство предметных сущностей содержит `owner_id`. При чтении, изменении и удалении данных сервисы и репозитории используют идентификатор текущего пользователя. Это предотвращает доступ одного организатора к данным другого.
+
+## Frontend
+
+Frontend находится в папке `frontend`. Он реализован на React, TypeScript и Vite. Приложение содержит публичный preview-режим и защищенное рабочее пространство организатора. Для запросов к backend используется общий API-клиент, а состояние загрузки данных обрабатывается через TanStack Query.
+
+## Docker Compose
+
+Файл `docker-compose.yml` описывает сервисы:
+
+- `db` - PostgreSQL;
+- `backend` - FastAPI-приложение;
+- `frontend` - Vite-приложение.
+
+Это позволяет запустить проект одной командой и использовать одинаковую схему запуска на разных машинах.
